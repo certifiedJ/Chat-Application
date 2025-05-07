@@ -18,9 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 #from . import views
 from django.contrib.auth import views as auth_views
+from django.shortcuts import redirect
+
+def profile_redirect(request):
+    return redirect('/chat/')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
+    path('accounts/profile/', profile_redirect, name='profile'),
     path('', include('c_application.urls')),
 ]
+

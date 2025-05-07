@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f9fc;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .user-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        .user-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            text-align: center;
+            width: 200px;
+            transition: transform 0.2s;
+        }
+        .user-card:hover {
+            transform: translateY(-5px);
+        }
+        .user-card a {
+            text-decoration: none;
+            color: #007bff;
+            font-size: 1.2em;
+        }
+        .user-card a:hover {
+            color: #0056b3;
+        }
+        .user-card i {
+            font-size: 3em;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Available Users to Chat</h2>
+    <div class="user-list">
+        {% for user in users %}
+            <div class="user-card">
+                <i class="fas fa-user-circle"></i>
+                <a href="{% url 'chat' user.id %}">{{ user.username }}</a>
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
