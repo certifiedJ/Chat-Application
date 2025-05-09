@@ -25,7 +25,7 @@ def profile_redirect(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
+    path('login/', auth_views.LoginView.as_view(), name='login'),
     path('accounts/profile/', profile_redirect, name='profile'),
     path('', include('c_application.urls')),
 ]
