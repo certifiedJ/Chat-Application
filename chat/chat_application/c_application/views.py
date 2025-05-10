@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from .forms import CustomUserCreationForm
 from django.http import JsonResponse
 from .models import Message
+from django.shortcuts import redirect
+from django.contrib.auth import logout
 
 @login_required
 def chat_view(request, recipient_id):
@@ -88,3 +90,9 @@ def fetch_messages(request):
         for message in messages_qs
     ]
     return JsonResponse({'messages': message_data})
+
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('/login/')
