@@ -7,5 +7,6 @@ urlpatterns = [
     path('chat/', views.chat_home, name='chat_home'),
     path('register/', views.registration_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
-    path('fetch_messages/', views.fetch_messages, name='fetch_messages')
+    path('fetch_messages/', views.fetch_messages, name='fetch_messages'),
+    path('', views.home, name='home'),
 ]

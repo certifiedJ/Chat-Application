@@ -95,4 +95,8 @@ def fetch_messages(request):
 
 def logout_view(request):
     logout(request)
-    return redirect('/login/')
+    return redirect('home')
+
+
+def home(request):
+    return render(request, 'chat/home.html')
