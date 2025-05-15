@@ -122,7 +122,7 @@
     
         // Fetch messages every 2 seconds
         setInterval(() => {
-            fetch('/fetch_messages/', {
+            fetch('/fetch_messages/?recipient_id={{ recipient_id }}', {
                 method: 'GET',
                 headers: {
                     'X-CSRFToken': csrftoken,
