@@ -152,7 +152,7 @@
         // Send message without refresh
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            fetch(`/chat/{{ recipient_id }}/`, {
+            fetch(`/chat/${{ recipient_id }}/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrftoken,
