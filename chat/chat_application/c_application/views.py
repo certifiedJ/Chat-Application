@@ -2,15 +2,15 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import Message
-from django.contrib.auth.models import User
+# REMOVE THIS LINE:
+# from django.contrib.auth.models import User
 from .forms import CustomUserCreationForm
 from django.http import JsonResponse
-from .models import Message
 from django.shortcuts import redirect
 from django.contrib.auth import logout
 from django.contrib.auth import get_user_model
 
-User = get_user_model()
+User = get_user_model()  # <--- Use this everywhere
 
 @login_required
 def chat_view(request, recipient_id):
@@ -36,11 +36,11 @@ def chat_view(request, recipient_id):
 
     return render(request, 'chat/chat.html', {
         'recipient': recipient,
+        'recipient_id': recipient_id,
         'messages': messages_qs,
         'request_user': request.user,
         'csrf_token': getattr(request, 'csrf_token', None),
     })
-
 
 def chat_home(request):
     if not request.user.is_authenticated:
@@ -67,13 +67,11 @@ def registration_view(request):
         form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
 
-
 def fetch_messages(request):
-    # Optionally filter messages for chat between the current user and recipient
-    # If recipient_id is passed as GET param, filter for those two users
     recipient_id = request.GET.get('recipient_id')
     if recipient_id and request.user.is_authenticated:
-        from django.contrib.auth.models import User
+        # REMOVE THE NEXT LINE:
+        # from django.contrib.auth.models import User
         try:
             recipient = User.objects.get(id=recipient_id)
             messages_qs = Message.objects.filter(
@@ -94,12 +92,9 @@ def fetch_messages(request):
     ]
     return JsonResponse({'messages': message_data})
 
-
-
 def logout_view(request):
     logout(request)
     return redirect('home')
-
 
 def home(request):
     return render(request, 'chat/home.html')
