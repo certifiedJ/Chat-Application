@@ -8,6 +8,9 @@ from django.http import JsonResponse
 from .models import Message
 from django.shortcuts import redirect
 from django.contrib.auth import logout
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 @login_required
 def chat_view(request, recipient_id):
