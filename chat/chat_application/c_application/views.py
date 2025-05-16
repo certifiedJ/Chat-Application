@@ -2,7 +2,6 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import Message
-# REMOVE THIS LINE:
 # from django.contrib.auth.models import User
 from .forms import CustomUserCreationForm
 from django.http import JsonResponse
@@ -17,18 +16,28 @@ def chat_view(request, recipient_id):
     try:
         recipient = User.objects.get(id=recipient_id)
     except User.DoesNotExist:
+        if request.is_ajax():
+            return JsonResponse({'error': 'User not found.'}, status=404)
         messages.error(request, "User not found.")
         return redirect('chat_home')
 
     if request.method == 'POST':
-        content = request.POST.get('message')
-        if content:
-            Message.objects.create(
-                sender=request.user,
-                recipient=recipient,
-                content=content
-            )
-
+        content = request.POST.get('message', '')
+        image = request.FILES.get('image')
+        msg = Message.objects.create(
+            sender=request.user,
+            recipient=recipient,
+            content=content,
+            image=image if image else None
+        )
+        # Return JSON for AJAX
+        return JsonResponse({
+            'sender': msg.sender.username,
+            'content': msg.content,
+            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'image_url': msg.image.url if msg.image else None,
+        })
+    
     messages_qs = Message.objects.filter(
         sender__in=[request.user, recipient],
         recipient__in=[request.user, recipient]
@@ -41,6 +50,8 @@ def chat_view(request, recipient_id):
         'request_user': request.user,
         'csrf_token': getattr(request, 'csrf_token', None),
     })
+        
+        
 
 def chat_home(request):
     if not request.user.is_authenticated:
@@ -70,8 +81,6 @@ def registration_view(request):
 def fetch_messages(request):
     recipient_id = request.GET.get('recipient_id')
     if recipient_id and request.user.is_authenticated:
-        # REMOVE THE NEXT LINE:
-        # from django.contrib.auth.models import User
         try:
             recipient = User.objects.get(id=recipient_id)
             messages_qs = Message.objects.filter(
@@ -86,7 +95,8 @@ def fetch_messages(request):
         {
             'sender': message.sender.username,
             'content': message.content,
-            'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'image_url': message.image.url if message.image else None,
         }
         for message in messages_qs
     ]

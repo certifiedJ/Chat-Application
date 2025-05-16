@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Page</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             min-height: 100vh;
@@ -13,95 +14,180 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Animated Gradient */
             background: linear-gradient(-45deg, #5ee7df, #b490ca, #fad0c4, #ffd6e0, #c9ffbf, #f9f586);
             background-size: 400% 400%;
             animation: gradientBG 12s ease infinite;
         }
-
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
         .chat-container {
-            width: 600px;
-            height: 600px;
-            background: rgba(255,255,255,0.95);
-            border-radius: 8px;
+            width: 420px;
+            height: 650px;
+            background: rgba(255,255,255,0.92);
+            border-radius: 28px;
             overflow: hidden;
-            box-shadow: 0 8px 24px rgba(44, 62, 80, 0.20), 0 1.5px 5px rgba(52, 152, 219, 0.12);
+            box-shadow: 0 8px 32px rgba(44, 62, 80, 0.18), 0 1.5px 5px rgba(52, 152, 219, 0.12);
             display: flex;
             flex-direction: column;
+            border: 1.5px solid #e0e0e0;
         }
         #chat-box {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 15px;
-            background-color: #eef1f7;
+            padding: 24px 14px 18px 14px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
-        .message {
-            margin-bottom: 15px;
+        .message-row {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-end;
+            margin-bottom: 2px;
+        }
+        .message-row.you {
+            justify-content: flex-end;
+        }
+        .bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 22px;
+            font-size: 1.08em;
+            line-height: 1.5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            position: relative;
+            word-break: break-word;
+            margin-bottom: 2px;
             display: flex;
             flex-direction: column;
         }
-        .message.you {
+        .bubble.me {
+            background: linear-gradient(120deg, #007aff 0%, #00c6ff 100%);
+            color: #fff;
+            border-bottom-right-radius: 6px;
             align-items: flex-end;
+            margin-left: 40px;
         }
-        .message .sender {
-            font-weight: bold;
-            color: #007bff;
+        .bubble.them {
+            background: #f1f0f0;
+            color: #222;
+            border-bottom-left-radius: 6px;
+            align-items: flex-start;
+            margin-right: 40px;
         }
-        .message.you .sender {
-            color: #28a745;
+        .sender {
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 2px;
+            color: #007aff;
         }
-        .message .timestamp {
+        .bubble.me .sender {
+            color: #e0f7fa;
+            align-self: flex-end;
+        }
+        .timestamp {
             font-size: 0.75em;
-            color: gray;
+            color: #888;
+            margin-top: 4px;
+            align-self: flex-end;
         }
-        .message .content {
-            margin-top: 5px;
-            background-color: #ffffff;
-            padding: 10px;
-            border-radius: 5px;
-            max-width: 70%;
+        .bubble.me .timestamp {
+            color: #d0f0ff;
         }
-        .message.you .content {
-            background-color: #d4edda;
+        .bubble.them .timestamp {
+            color: #aaa;
         }
         .input-container {
             display: flex;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid #e0e0e0;
+            background: #f7f7f7;
+            padding: 10px 12px;
         }
         .input-container input {
             border: none;
-            padding: 15px;
+            padding: 12px 16px;
             flex-grow: 1;
+            border-radius: 20px;
+            background: #f1f0f0;
+            font-size: 1.1em;
+            outline: none;
+            margin-right: 10px;
+            transition: box-shadow 0.2s;
+        }
+        .input-container input:focus {
+            box-shadow: 0 0 0 2px #007aff33;
         }
         .input-container button {
             border: none;
-            background-color: #007bff;
+            background: linear-gradient(90deg, #007aff 0%, #00c6ff 100%);
             color: white;
-            padding: 15px;
+            padding: 0 22px;
+            border-radius: 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.10);
+        }
+        .input-container button:hover {
+            background: linear-gradient(90deg, #0051a8 0%, #00aaff 100%);
+        }
+        /* Scrollbar styling */
+        #chat-box::-webkit-scrollbar {
+            width: 8px;
+            background: #e0e0e0;
+            border-radius: 8px;
+        }
+        #chat-box::-webkit-scrollbar-thumb {
+            background: #b0b0b0;
+            border-radius: 8px;
+        }
+        @media (max-width: 500px) {
+            .chat-container {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+            #chat-box {
+                padding: 12px 4px 10px 4px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div id="chat-box"></div>
-        
-        <form id="messageForm" method="POST" class="input-container">
+        <form id="messageForm" method="POST" class="input-container" enctype="multipart/form-data">
             {% csrf_token %}
-            <input id="messageInput" type="text" name="message" placeholder="Type your message..." required>
+            <input id="messageInput" type="text" name="message" placeholder="Type your message..." autocomplete="off" required>
+            <input id="imageInput" type="file" name="image" accept="image/*" style="display:none;">
+            <button type="button" onclick="document.getElementById('imageInput').click();" title="Attach Photo" class="btn btn-light shadow-sm" style="border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; margin-right:8px;">
+                <i class="fa-solid fa-camera"></i>
+            </button>
             <button type="submit">Send</button>
         </form>
     </div>
-
+    <div style="display:none" id="django-messages-render">
+      {% for message in messages %}
+          <div class="message">
+              <strong>{{ message.sender.username }}:</strong>
+              {{ message.content|linebreaksbr }}
+              {% if message.image %}
+                  <div>
+                      <img src="{{ message.image.url }}" alt="image" style="max-width: 200px; max-height: 200px;">
+                  </div>
+              {% endif %}
+              <small>{{ message.timestamp }}</small>
+          </div>
+      {% endfor %}
+    </div>
     <script>
         const chatBox = document.getElementById('chat-box');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
-    
         // CSRF Token Extraction
         function getCookie(name) {
             let cookieValue = null;
@@ -109,7 +195,6 @@
                 const cookies = document.cookie.split(';');
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
-                    // Does this cookie string begin with the name we want?
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                         break;
@@ -119,9 +204,32 @@
             return cookieValue;
         }
         const csrftoken = getCookie('csrftoken');
-    
+
+        // Render messages like iMessage
+        function renderMessages(messages) {
+            chatBox.innerHTML = '';
+            messages.forEach(message => {
+                const row = document.createElement('div');
+                row.classList.add('message-row');
+                let isMe = message.sender === "{{ request.user.username }}";
+                row.classList.add(isMe ? 'you' : 'them');
+                const bubble = document.createElement('div');
+                bubble.classList.add('bubble', isMe ? 'me' : 'them');
+                let contentHtml = `<span class="sender">${isMe ? 'You' : message.sender}</span>`;
+                contentHtml += `<span>${message.content}</span>`;
+                if (message.image_url) {
+                    contentHtml += `<img src="${message.image_url}" style="max-width:180px; border-radius:12px; margin-top:8px;">`;
+                }
+                contentHtml += `<span class="timestamp">${message.timestamp}</span>`;
+                bubble.innerHTML = contentHtml;
+                row.appendChild(bubble);
+                chatBox.appendChild(row);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
         // Fetch messages every 2 seconds
-        setInterval(() => {
+        function fetchMessages() {
             fetch('/fetch_messages/?recipient_id={{ recipient_id }}', {
                 method: 'GET',
                 headers: {
@@ -131,38 +239,46 @@
             })
             .then(response => response.json())
             .then(data => {
-                chatBox.innerHTML = '';
-                data.messages.forEach(message => {
-                    const msgDiv = document.createElement('div');
-                    msgDiv.classList.add('message');
-                    if (message.sender === "{{ request.user.username }}") {
-                        msgDiv.classList.add('you');
-                    }
-                    msgDiv.innerHTML = `
-                        <span class="sender">${message.sender}</span>
-                        <div class="content">${message.content}</div>
-                        <div class="timestamp">${message.timestamp}</div>
-                    `;
-                    chatBox.appendChild(msgDiv);
-                });
-                chatBox.scrollTop = chatBox.scrollHeight;
+                renderMessages(data.messages);
             });
-        }, 2000);
-    
+        }
+
+        // Utility to append a single message to the chat UI
+        function appendSingleMessage(data) {
+            let messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+        
+            let contentHtml = `<strong>${data.sender}:</strong> ${data.content}<br>`;
+            if (data.image_url) {
+                contentHtml += `<img src="${data.image_url}" alt="image" style="max-width: 200px; max-height: 200px;"><br>`;
+            }
+            contentHtml += `<small>${data.timestamp}</small>`;
+        
+            messageDiv.innerHTML = contentHtml;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        setInterval(fetchMessages, 2000);
+        fetchMessages();
+
         // Send message without refresh
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            const formData = new FormData(messageForm);
             fetch(`/chat/{{ recipient_id }}/`,  {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrftoken
-                    // No 'Content-Type': 'application/json' when using FormData!
                 },
-                body: new FormData(messageForm)
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
                 messageInput.value = '';
+                document.getElementById('imageInput').value = '';
+                appendSingleMessage(data); // Add the new message immediately
+                // Optionally, you can fetchMessages() after if you want to keep in sync
             });
         });
     </script>

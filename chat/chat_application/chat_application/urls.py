@@ -19,6 +19,8 @@ from django.urls import path, include
 #from . import views
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
+from django.conf import settings
+from django.conf.urls.static import static
 
 def profile_redirect(request):
     return redirect('/chat/')
@@ -30,3 +32,5 @@ urlpatterns = [
     path('', include('c_application.urls')),
 ]
 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
