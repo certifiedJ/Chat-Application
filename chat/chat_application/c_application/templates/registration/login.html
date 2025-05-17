@@ -137,7 +137,17 @@
     <div class="bubble bubble4"></div>
     <div class="login-container">
         <h2 class="text-center mb-4"><i class="fas fa-sign-in-alt"></i> Login</h2>
-        <form method="POST">
+        {% if error_message %}
+            <div class="alert alert-danger text-center" role="alert">
+                {{ error_message }}
+            </div>
+        {% endif %}
+        {% if form.errors %}
+            <div class="alert alert-danger text-center" role="alert">
+                Invalid username or password.
+            </div>
+        {% endif %}
+        <form method="POST" autocomplete="off">
             {% csrf_token %}
             <div class="form-group mb-3">
                 <label for="id_username" class="form-label">Username:</label>
@@ -146,6 +156,10 @@
             <div class="form-group mb-3">
                 <label for="id_password" class="form-label">Password:</label>
                 {{ form.password|add_class:"form-control" }}
+                <div class="form-check mt-2">
+                    <input type="checkbox" class="form-check-input" id="showPasswordCheck" onclick="togglePassword()">
+                    <label class="form-check-label" for="showPasswordCheck">Show Password</label>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
@@ -156,5 +170,15 @@
     <div class="footer">
         &copy; 2025 Chat Application. All Rights Reserved.
     </div>
+    <script>
+        function togglePassword() {
+            var pwd = document.getElementById("id_password");
+            if (pwd.type === "password") {
+                pwd.type = "text";
+            } else {
+                pwd.type = "password";
+            }
+        }
+    </script>
 </body>
 </html>

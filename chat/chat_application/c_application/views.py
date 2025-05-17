@@ -8,6 +8,8 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.contrib.auth import logout
 from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, login
+
 
 User = get_user_model()  # <--- Use this everywhere
 
@@ -108,3 +110,16 @@ def logout_view(request):
 
 def home(request):
     return render(request, 'chat/home.html')
+
+
+def login_view(request):
+    if request.method =="POST":
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('chat_home')
+        else:
+            messages.error(request, "Invalid username or password.")
+    return render(request, 'registration/login.html')

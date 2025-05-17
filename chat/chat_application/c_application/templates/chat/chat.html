@@ -158,17 +158,34 @@
     </style>
 </head>
 <body>
+    <button onclick="goBack()" class="btn btn-secondary shadow" style="position: absolute; top: 18px; left: 18px; z-index: 10; border-radius: 50px; padding: 8px 18px;">
+        <i class="fa fa-arrow-left"></i> Back
+    </button>
     <div class="chat-container">
+        <!-- Chat header with recipient avatar and name -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; background: linear-gradient(90deg, #e0eafc 0%, #cfdef3 100%); border-bottom: 1px solid #e0e0e0; padding: 18px 0 10px 0; border-radius: 28px 28px 0 0;">
+            <span style="display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 50%; width: 48px; height: 48px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <i class="fa-solid fa-user" style="font-size: 2em; color: #007aff;"></i>
+            </span>
+            <span style="font-weight:700; font-size:1.3em; color:#007aff; letter-spacing:1px;">
+                {{ recipient.username }}
+            </span>
+        </div>
         <div id="chat-box"></div>
-        <form id="messageForm" method="POST" class="input-container" enctype="multipart/form-data">
+        <form id="messageForm" method="POST" class="input-container" enctype="multipart/form-data" style="border-radius: 0 0 28px 28px;">
             {% csrf_token %}
-            <input id="messageInput" type="text" name="message" placeholder="Type your message..." autocomplete="off" required>
+            <input id="messageInput" type="text" name="message" placeholder="Type your message..." autocomplete="off" required style="margin-right:8px;">
             <input id="imageInput" type="file" name="image" accept="image/*" style="display:none;">
             <button type="button" onclick="document.getElementById('imageInput').click();" title="Attach Photo" class="btn btn-light shadow-sm" style="border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; margin-right:8px;">
                 <i class="fa-solid fa-camera"></i>
             </button>
-            <button type="submit">Send</button>
+            <button type="submit" class="btn btn-primary" style="border-radius: 20px; font-weight: 600;">Send</button>
         </form>
+    </div>
+    <!-- Modal for image preview -->
+    <div id="imageModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;">
+        <span id="closeModal" style="position:absolute; top:30px; right:40px; color:#fff; font-size:2.5em; cursor:pointer; font-weight:bold; z-index:10001;">&times;</span>
+        <img id="modalImg" src="" style="max-width:90vw; max-height:85vh; border-radius:18px; box-shadow:0 4px 32px rgba(0,0,0,0.5); border:8px solid #fff;">
     </div>
     <div style="display:none" id="django-messages-render">
       {% for message in messages %}
@@ -185,6 +202,9 @@
       {% endfor %}
     </div>
     <script>
+        let lastMessageId = null;
+        let lastSender = null; 
+
         const chatBox = document.getElementById('chat-box');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
@@ -205,28 +225,45 @@
         }
         const csrftoken = getCookie('csrftoken');
 
+        // Navigates the browser back a page
+        function goBack() {
+            window.history.back();
+        }
+
         // Render messages like iMessage
-        function renderMessages(messages) {
+       function renderMessages(messages) {
             chatBox.innerHTML = '';
-            messages.forEach(message => {
+            messages.forEach((message, idx) => {
                 const row = document.createElement('div');
                 row.classList.add('message-row');
                 let isMe = message.sender === "{{ request.user.username }}";
                 row.classList.add(isMe ? 'you' : 'them');
                 const bubble = document.createElement('div');
                 bubble.classList.add('bubble', isMe ? 'me' : 'them');
-                let contentHtml = `<span class="sender">${isMe ? 'You' : message.sender}</span>`;
+                bubble.style.boxShadow = isMe
+                    ? "0 2px 12px rgba(0,123,255,0.09)"
+                    : "0 2px 12px rgba(44,62,80,0.07)";
+                let contentHtml = `<span class="sender" style="margin-bottom:2px;">${isMe ? 'You' : message.sender}</span>`;
                 contentHtml += `<span>${message.content}</span>`;
                 if (message.image_url) {
-                    contentHtml += `<img src="${message.image_url}" style="max-width:180px; border-radius:12px; margin-top:8px;">`;
+                    contentHtml += `<img src="${message.image_url}" class="chat-img-thumb" style="max-width:180px; border-radius:12px; margin-top:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer;">`;
                 }
-                contentHtml += `<span class="timestamp">${message.timestamp}</span>`;
+                contentHtml += `<span class="timestamp" style="margin-top:6px;">${message.timestamp}</span>`;
                 bubble.innerHTML = contentHtml;
                 row.appendChild(bubble);
                 chatBox.appendChild(row);
             });
             chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Add click event to all images for modal preview
+            document.querySelectorAll('.chat-img-thumb').forEach(img => {
+                img.onclick = function() {
+                    document.getElementById('modalImg').src = this.src;
+                    document.getElementById('imageModal').style.display = 'flex';
+                };
+            });
         }
+    
 
         // Fetch messages every 2 seconds
         function fetchMessages() {
@@ -266,9 +303,14 @@
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(messageForm);
+            // Ensure CSRF token is included in the form data
+            if (!formData.has('csrfmiddlewaretoken')) {
+                formData.append('csrfmiddlewaretoken', csrftoken);
+            }
             fetch(`/chat/{{ recipient_id }}/`,  {
                 method: 'POST',
                 headers: {
+                    // Do NOT set Content-Type here, let browser set it for FormData
                     'X-CSRFToken': csrftoken
                 },
                 body: formData
@@ -281,6 +323,18 @@
                 // Optionally, you can fetchMessages() after if you want to keep in sync
             });
         });
+
+        // Modal close logic
+        document.getElementById('closeModal').onclick = function() {
+            document.getElementById('imageModal').style.display = 'none';
+            document.getElementById('modalImg').src = '';
+        };
+        document.getElementById('imageModal').onclick = function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+                document.getElementById('modalImg').src = '';
+            }
+        };
     </script>
 </body>
 </html>
