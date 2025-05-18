@@ -44,6 +44,8 @@ def chat_view(request, recipient_id):
         sender__in=[request.user, recipient],
         recipient__in=[request.user, recipient]
     ).order_by('timestamp')
+    
+    messages_qs.filter(recipient=request.user, read=False).update(read=True)
 
     return render(request, 'chat/chat.html', {
         'recipient': recipient,
@@ -61,8 +63,14 @@ def chat_home(request):
         return redirect('login')
     
     users = User.objects.exclude(id=request.user.id)
+    # Calculate unread message counts for each user
+    unread_counts = {
+        user.id: Message.objects.filter(sender=user, recipient=request.user, read=False).count()
+        for user in users
+    }
     return render(request, 'chat/chat_home.html', {
         'users': users,
+        'unread_counts': unread_counts,
         'request_user': request.user,
         'csrf_token': getattr(request, 'csrf_token', None),
     })

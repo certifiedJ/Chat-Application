@@ -208,6 +208,7 @@
     </style>
 </head>
 <body>
+    {% load custom_filters %}
     <div class="current-user">
         <p>Logged in as: <strong>{{ request.user.username }}</strong></p>
     </div>
@@ -221,15 +222,31 @@
         <div class="user-list" style="justify-content: center; align-items: center;">
         {% for user in users %}
             <div class="user-card">
-                <i class="fas fa-user-circle"></i>
-                <a href="{% url 'chat' user.id %}">{{ user.username }}</a>
-                <p class="user-status">
+                <!-- Notification Badge (top right corner, only if unread) -->
+                {% if unread_counts|get_item:user.id > 0 %}
+                    <span class="notification-badge">{{ unread_counts|get_item:user.id }}</span>
+                {% endif %}
+
+                <!-- User Icon -->
+                <div style="margin-bottom: 18px;">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+
+                <!-- Username -->
+                <div style="margin-bottom: 10px;">
+                    <a href="{% url 'chat' user.id %}">{{ user.username }}</a>
+                </div>
+
+                <!-- User Status -->
+                <div class="user-status" style="margin-bottom: 18px;">
                     {% if user.is_online %}
                         <span style="color: #7fff7f;">Online</span>
                     {% else %}
                         <span style="color: #ff7f7f;">Offline</span>
                     {% endif %}
-                </p>
+                </div>
+
+                <!-- Start Chat Button -->
                 <button onclick="startChat('{{ user.id }}')" class="chat-button">Start Chat</button>
             </div>
         {% endfor %}
