@@ -62,7 +62,7 @@ def chat_view(request, recipient_id):
 
 def chat_home(request):
     users = User.objects.exclude(id=request.user.id)
-    rooms = ChatRoom.objects.all()  # <-- get all rooms!
+    rooms = ChatRoom.objects.all()
     unread_counts = {
         user.id: Message.objects.filter(sender=user, recipient=request.user, read=False).count()
         for user in users
@@ -71,9 +71,13 @@ def chat_home(request):
     # Handle room creation from chat_home
     if request.method == "POST" and 'room_name' in request.POST:
         room_name = request.POST['room_name']
-        room, created = ChatRoom.objects.get_or_create(name=room_name)
-        room.participants.add(request.user)
-        return redirect('room_detail', room_id=room.id)
+        if not ChatRoom.objects.filter(name=room_name).exists():
+            room = ChatRoom.objects.create(name=room_name)
+            room.participants.add(request.user)
+            return redirect('room_detail', room_id=room.id)
+        else:
+            messages.error(request, "A room with this name already exists. Please choose a different name.")
+            # Optionally: do not add user to existing room
 
     return render(request, 'chat/chat_home.html', {
         'users': users,
@@ -160,11 +164,12 @@ def room_list(request):
     rooms = ChatRoom.objects.all()
     if request.method == "POST":
         room_name = request.POST.get("room_name")
-        if room_name:
-            # Create room or get existing one (avoid duplicate names)
-            room, created = ChatRoom.objects.get_or_create(name=room_name)
+        if room_name and not ChatRoom.objects.filter(name=room_name).exists():
+            room = ChatRoom.objects.create(name=room_name)
             room.participants.add(request.user)
             return redirect('room_detail', room_id=room.id)
+        elif room_name:
+            messages.error(request, "A room with this name already exists. Please choose a different name.")
     return render(request, 'chat/room_list.html', {'rooms': rooms})
 
 @login_required
@@ -178,3 +183,10 @@ def room_detail(request, room_id):
             Message.objects.create(sender=request.user, room=room, content=content or '', image=image)
             return redirect('room_detail', room_id=room.id)
     return render(request, 'chat/chat.html', {'room': room, 'messages': messages})
+
+
+def delete_room(request, room_id):
+    if request.method == "POST":
+        room = get_object_or_404(ChatRoom, id=room_id)
+        room.delete()
+    return redirect('chat_home')

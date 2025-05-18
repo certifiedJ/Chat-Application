@@ -12,5 +12,6 @@ urlpatterns = [
     path('chat/is_typing/<int:recipient_id>/', views.is_typing, name='is_typing'),
     path('rooms/<int:room_id>/', views.room_detail, name='room_detail'),
     path('rooms/', views.room_list, name='room_list'),
+    path('rooms/<int:room_id>/delete/', views.delete_room, name='delete_room'),
     path('', views.home, name='home'),
 ]
