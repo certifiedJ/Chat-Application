@@ -1,5 +1,8 @@
+from django.views.decorators.csrf import csrf_exempt
+from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import ChatRoom, Message
 from django.contrib import messages
 from .models import Message
 # from django.contrib.auth.models import User
@@ -58,21 +61,25 @@ def chat_view(request, recipient_id):
         
 
 def chat_home(request):
-    if not request.user.is_authenticated:
-        messages.error(request, "Please log in to access chat.")
-        return redirect('login')
-    
     users = User.objects.exclude(id=request.user.id)
-    # Calculate unread message counts for each user
+    rooms = ChatRoom.objects.all()  # <-- get all rooms!
     unread_counts = {
         user.id: Message.objects.filter(sender=user, recipient=request.user, read=False).count()
         for user in users
     }
+
+    # Handle room creation from chat_home
+    if request.method == "POST" and 'room_name' in request.POST:
+        room_name = request.POST['room_name']
+        room, created = ChatRoom.objects.get_or_create(name=room_name)
+        room.participants.add(request.user)
+        return redirect('room_detail', room_id=room.id)
+
     return render(request, 'chat/chat_home.html', {
         'users': users,
+        'rooms': rooms,
         'unread_counts': unread_counts,
         'request_user': request.user,
-        'csrf_token': getattr(request, 'csrf_token', None),
     })
 
 def registration_view(request):
@@ -131,3 +138,43 @@ def login_view(request):
         else:
             messages.error(request, "Invalid username or password.")
     return render(request, 'registration/login.html')
+
+
+# Typing Indicator Views (add near the bottom of the file)
+@csrf_exempt
+@login_required
+def set_typing(request, recipient_id):
+    if request.method == 'POST':
+        cache.set(f'typing_{request.user.id}_{recipient_id}', True, timeout=2)
+        return JsonResponse({'status': 'ok'})
+
+@login_required
+def is_typing(request, recipient_id):
+    key = f'typing_{recipient_id}_{request.user.id}'
+    is_typing_flag = cache.get(key, False)
+    return JsonResponse({'is_typing': is_typing_flag})
+
+
+@login_required
+def room_list(request):
+    rooms = ChatRoom.objects.all()
+    if request.method == "POST":
+        room_name = request.POST.get("room_name")
+        if room_name:
+            # Create room or get existing one (avoid duplicate names)
+            room, created = ChatRoom.objects.get_or_create(name=room_name)
+            room.participants.add(request.user)
+            return redirect('room_detail', room_id=room.id)
+    return render(request, 'chat/room_list.html', {'rooms': rooms})
+
+@login_required
+def room_detail(request, room_id):
+    room = get_object_or_404(ChatRoom, id=room_id)
+    messages = room.messages.order_by('timestamp')  # <--- use .messages if you have related_name set
+    if request.method == "POST":
+        content = request.POST.get("message")
+        image = request.FILES.get("image")
+        if content or image:
+            Message.objects.create(sender=request.user, room=room, content=content or '', image=image)
+            return redirect('room_detail', room_id=room.id)
+    return render(request, 'chat/chat.html', {'room': room, 'messages': messages})

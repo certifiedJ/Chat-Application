@@ -8,5 +8,9 @@ urlpatterns = [
     path('register/', views.registration_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('fetch_messages/', views.fetch_messages, name='fetch_messages'),
+    path('chat/typing/<int:recipient_id>/', views.set_typing, name='set_typing'),
+    path('chat/is_typing/<int:recipient_id>/', views.is_typing, name='is_typing'),
+    path('rooms/<int:room_id>/', views.room_detail, name='room_detail'),
+    path('rooms/', views.room_list, name='room_list'),
     path('', views.home, name='home'),
 ]

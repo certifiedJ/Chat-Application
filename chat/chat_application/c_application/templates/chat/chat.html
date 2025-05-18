@@ -172,6 +172,9 @@
             </span>
         </div>
         <div id="chat-box"></div>
+        <div id="typing-indicator" style="font-style: italic; color: #888; display: none; margin-left:12px; margin-bottom:4px;">
+            {{ recipient.username }} is typing...
+        </div>
         <form id="messageForm" method="POST" class="input-container" enctype="multipart/form-data" style="border-radius: 0 0 28px 28px;">
             {% csrf_token %}
             <input id="messageInput" type="text" name="message" placeholder="Type your message..." autocomplete="off" required style="margin-right:8px;">
@@ -208,6 +211,30 @@
         const chatBox = document.getElementById('chat-box');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
+        // Typing Indicator logic
+        let typingTimer;
+        const typingIndicator = document.getElementById('typing-indicator');
+        messageInput.addEventListener('input', function() {
+            fetch(`/chat/typing/{{ recipient_id }}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            });
+        });
+
+        // Poll for typing indicator every 1.2s
+        setInterval(function() {
+            fetch(`/chat/is_typing/{{ recipient_id }}/`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.is_typing) {
+                        typingIndicator.style.display = '';
+                    } else {
+                        typingIndicator.style.display = 'none';
+                    }
+                });
+        }, 1200);
         // CSRF Token Extraction
         function getCookie(name) {
             let cookieValue = null;
