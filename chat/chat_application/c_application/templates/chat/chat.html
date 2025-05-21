@@ -145,6 +145,22 @@
             background: #b0b0b0;
             border-radius: 8px;
         }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4d4d;
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px 7px;
+            font-size: 0.95em;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255,77,77,0.18);
+            z-index: 10;
+            border: 2px solid #fff;
+            min-width: 22px;
+            text-align: center;
+        }
         @media (max-width: 600px) {
             .chat-container {
                 width: 100vw;
@@ -170,8 +186,13 @@
             <span style="font-weight:700; font-size:1.3em; color:#007aff; letter-spacing:1px;">
                 {% if room %}{{ room.name }}{% else %}{{ recipient.username }}{% endif %}
             </span>
+            <!-- ADD START CALL BUTTON HERE -->
+            <button id="start-video-call" class="btn btn-outline-primary" style="margin-left: auto; margin-right: 18px; display: flex; align-items: center; gap:6px;">
+                <i class="fa fa-video"></i> Start Call
+            </button>
         </div>
         <div id="chat-box"></div>
+        <span id="chat-notification-badge" class="notification-badge" style="display:none;"></span>
         <div id="typing-indicator" style="font-style: italic; color: #888; display: none; margin-left:12px; margin-bottom:4px;">
             {{ recipient.username }} is typing...
         </div>
@@ -190,20 +211,25 @@
         <span id="closeModal" style="position:absolute; top:30px; right:40px; color:#fff; font-size:2.5em; cursor:pointer; font-weight:bold; z-index:10001;">&times;</span>
         <img id="modalImg" src="" style="max-width:90vw; max-height:85vh; border-radius:18px; box-shadow:0 4px 32px rgba(0,0,0,0.5); border:8px solid #fff;">
     </div>
-    <div style="display:none" id="django-messages-render">
-      {% for message in messages %}
-          <div class="message">
-              <strong>{{ message.sender.username }}:</strong>
-              {{ message.content|linebreaksbr }}
-              {% if message.image %}
-                  <div>
-                      <img src="{{ message.image.url }}" alt="image" style="max-width: 200px; max-height: 200px;">
-                  </div>
-              {% endif %}
-              <small>{{ message.timestamp }}</small>
+    <!-- Video Call Modal -->
+    <div class="modal" tabindex="-1" id="videoCallModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; z-index:9999;">
+      <div style="position:relative; width:90vw; max-width:820px; background:#fff; border-radius:18px; padding:28px 14px 16px 14px; box-shadow:0 6px 42px rgba(0,0,0,0.32); display:flex; flex-direction:column; align-items:center;">
+          <button id="closeVideoCall" style="position:absolute; top:12px; right:20px; font-size:2em; background:none; border:none; color:#333; cursor:pointer;">&times;</button>
+          <h4 style="margin-bottom:16px; color:#007aff;">Video Call Room</h4>
+          <div id="local-video" style="width:320px; height:220px; background:#f7f7f7; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:12px; display:flex;align-items:center;justify-content:center;">
+            <span style="color:#bbb;">Your video here</span>
           </div>
-      {% endfor %}
+          <div id="remote-video" style="width:320px; height:220px; background:#eef; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;">
+            <span style="color:#bbb;">Other participant</span>
+          </div>
+          <div id="video-call-status" style="margin-top:18px; color:#888; font-size:1.05em;"></div>
+          <!-- Add these elements for local preview -->
+          <button id="startCallBtn" style="margin-top:18px;">Start Call</button>
+          <div id="local-media" style="margin-top:10px;"></div>
+      </div>
     </div>
+    <!-- Twilio Video SDK -->
+    <script src="//sdk.twilio.com/js/video/releases/2.17.1/twilio-video.min.js"></script>
     <script>
         let lastMessageId = null;
         let lastSender = null; 
@@ -286,20 +312,20 @@
                 emojis.forEach(emoji => {
                     let count = reactions[emoji] ? reactions[emoji].length : 0;
                     if (count > 0) {
-                        // Highlight if current user reacted with this emoji
-                        let highlight = reactions[emoji].includes("{{ request.user.id }}") ? "background:#e0f7fa;border-radius:8px;" : "";
+                        // Always compare as string (user ids are strings in JSON)
+                        let highlight = reactions[emoji].map(String).includes("{{ request.user.id }}") ? "background:#e0f7fa;border-radius:8px;" : "";
                         if (highlight) userReacted = true;
                         reactionDisplay += `<span class="imessage-reaction" style="margin-right:2px;${highlight}">${emoji}${count > 1 ? `<span style='font-size:0.85em;'>${count}</span>` : ''}</span>`;
                         totalReactions += count;
                     }
                 });
                 if (reactionDisplay) {
-                    // Overlay reactions at top-right of bubble
+                    // Overlay reactions at top-right of bubble (ALWAYS VISIBLE)
                     contentHtml += `<div class="imessage-reaction-bar" style="position:absolute;top:-12px;right:8px;display:flex;gap:2px;z-index:2;padding:2px 6px;background:#fff;border-radius:14px;border:1px solid #e0e0e0;box-shadow:0 1px 4px rgba(0,0,0,0.07);font-size:1.08em;">${reactionDisplay}</div>`;
                 }
-                // Reaction picker (hidden by default, shown on hover/tap or if user has reacted)
+                // Reaction picker (hidden by default, shown on hover/tap)
                 contentHtml += `
-                <div class="imessage-reaction-picker" style="display:${userReacted ? 'flex' : 'none'};position:absolute;bottom:100%;right:10px;background:#fff;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,0.13);padding:4px 10px;z-index:10;">
+                <div class="imessage-reaction-picker" style="display:none;position:absolute;bottom:100%;right:10px;background:#fff;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,0.13);padding:4px 10px;z-index:10;">
                     ${emojis.map(emoji => `<button class="react-btn" data-mid="${message.id}" data-emoji="${emoji}" style="background:none;border:none;cursor:pointer;font-size:1.3em;padding:2px 4px;">${emoji}</button>`).join('')}
                 </div>
                 `;
@@ -310,19 +336,13 @@
                     this.querySelector('.imessage-reaction-picker').style.display = 'flex';
                 };
                 bubble.onmouseleave = function() {
-                    if (!userReacted) {
-                        this.querySelector('.imessage-reaction-picker').style.display = 'none';
-                    }
+                    this.querySelector('.imessage-reaction-picker').style.display = 'none';
                 };
                 // For mobile: tap to toggle picker
                 bubble.onclick = function(e) {
                     if (window.innerWidth < 600) {
                         let picker = this.querySelector('.imessage-reaction-picker');
-                        if (picker.style.display === 'flex') {
-                            if (!userReacted) picker.style.display = 'none';
-                        } else {
-                            picker.style.display = 'flex';
-                        }
+                        picker.style.display = (picker.style.display === 'flex') ? 'none' : 'flex';
                         e.stopPropagation();
                     }
                 };
@@ -350,7 +370,6 @@
                         e.stopPropagation();
                         const mid = this.getAttribute('data-mid');
                         const emoji = this.getAttribute('data-emoji');
-                        // Prevent sending if mid is missing or undefined
                         if (!mid || mid === "undefined") {
                             return;
                         }
@@ -364,25 +383,13 @@
                         })
                         .then(res => res.json())
                         .then(() => {
-                            // Instead of hiding all pickers, keep the picker open for this message
                             fetchMessages();
-                            // Keep the picker open for this bubble after update
-                            setTimeout(() => {
-                                // Find the bubble for this message and show its picker
-                                document.querySelectorAll('.react-btn').forEach(b => {
-                                    if (b.getAttribute('data-mid') === mid) {
-                                        const picker = b.closest('.imessage-reaction-picker');
-                                        if (picker) picker.style.display = 'flex';
-                                    }
-                                });
-                            }, 300);
                         });
                     };
                 });
             }, 0);
             // Hide all pickers on document click (for mobile)
             document.body.onclick = function(e) {
-                // Only hide if not clicking inside a picker or bubble
                 if (!e.target.closest('.imessage-reaction-picker') && !e.target.closest('.bubble')) {
                     document.querySelectorAll('.imessage-reaction-picker').forEach(p => {
                         p.style.display = 'none';
@@ -420,6 +427,27 @@
             });
             {% endif %}
         }
+
+        // Show notification badge if there are unread messages
+        function updateNotificationBadge() {
+            fetch("{% url 'fetch_messages' %}?check_unread=1", {
+                credentials: "same-origin"
+            })
+            .then(res => res.json())
+            .then(data => {
+                const badge = document.getElementById('chat-notification-badge');
+                if (data.notify) {
+                    badge.textContent = "●";
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        }
+
+        // Call on load and every 10 seconds
+        updateNotificationBadge();
+        setInterval(updateNotificationBadge, 10000);
 
         // Utility to append a single message to the chat UI
         function appendSingleMessage(data) {
@@ -488,6 +516,138 @@
                 document.getElementById('modalImg').src = '';
             }
         };
+
+        // --- Video Call Modal Logic ---
+        const videoCallModal = document.getElementById('videoCallModal');
+        const startCallBtn = document.getElementById('start-video-call');
+        const closeCallBtn = document.getElementById('closeVideoCall');
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const callStatus = document.getElementById('video-call-status');
+        let twilioRoom = null;
+
+        // 1. Fetch Twilio Access Token from your server
+        async function fetchTwilioToken(roomName) {
+            // Change this to your own endpoint!
+            const resp = await fetch(`/video/token/?room=${encodeURIComponent(roomName)}`);
+            const data = await resp.json();
+            return data.token;
+        }
+
+        startCallBtn.onclick = async function() {
+            videoCallModal.style.display = 'flex';
+            callStatus.innerText = 'Connecting...';
+
+            // 2. Pick a room name (could be based on Django room.id or room.name)
+            const roomName = "{{ room.name|default:'default-room' }}";
+
+            // 3. Get access token (for now, you can paste a dev token here for testing)
+            let token = await fetchTwilioToken(roomName);
+
+            // 4. Connect to Twilio room and render video
+            Twilio.Video.connect(token, {
+                name: roomName,
+                audio: true,
+                video: { width: 480 }
+            }).then(room => {
+                twilioRoom = room;
+                callStatus.innerText = "Connected to video call!";
+
+                // Local participant
+                room.localParticipant.tracks.forEach(publication => {
+                    if (publication.track.kind === 'video') {
+                        localVideo.innerHTML = "";
+                        localVideo.appendChild(publication.track.attach());
+                    }
+                });
+
+                // Handle remote participants
+                function attachParticipantTracks(participant) {
+                    participant.tracks.forEach(publication => {
+                        if (publication.isSubscribed && publication.track.kind === 'video') {
+                            remoteVideo.innerHTML = "";
+                            remoteVideo.appendChild(publication.track.attach());
+                        }
+                    });
+                    participant.on('trackSubscribed', track => {
+                        if (track.kind === 'video') {
+                            remoteVideo.innerHTML = "";
+                            remoteVideo.appendChild(track.attach());
+                        }
+                    });
+                }
+
+                room.participants.forEach(attachParticipantTracks);
+                room.on('participantConnected', attachParticipantTracks);
+
+                // Cleanup on disconnect
+                room.on('disconnected', () => {
+                    callStatus.innerText = "Call ended.";
+                    localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
+                    remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+                });
+            }, error => {
+                callStatus.innerText = "Unable to join video call: " + error.message;
+            });
+        };
+
+        closeCallBtn.onclick = function() {
+            videoCallModal.style.display = 'none';
+            callStatus.innerText = '';
+            if (twilioRoom) {
+                twilioRoom.disconnect();
+                twilioRoom = null;
+            }
+            localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
+            remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+        };
+
+        // Hide modal on clicking outside the modal content
+        videoCallModal.onclick = function(e) {
+            if (e.target === videoCallModal) {
+                closeCallBtn.onclick();
+            }
+        };
+    </script>
+    <script>
+    document.getElementById('startCallBtn').addEventListener('click', async function() {
+        // Fetch Twilio token for the room
+        const roomName = "{{ room.name|default:'default-room' }}";
+        let token;
+        try {
+            const resp = await fetch(`/video/token/?room=${encodeURIComponent(roomName)}`);
+            const data = await resp.json();
+            token = data.token;
+        } catch (err) {
+            alert('Could not get video token from server.');
+            return;
+        }
+
+        Twilio.Video.createLocalTracks({
+            audio: true,
+            video: true
+        }).then(localTracks => {
+            // Attach the tracks to the DOM for preview
+            const localMediaContainer = document.getElementById('local-media');
+            localMediaContainer.innerHTML = '';
+            localTracks.forEach(track => {
+                localMediaContainer.appendChild(track.attach());
+            });
+            // Connect to Twilio Room with these tracks
+            return Twilio.Video.connect(token, {
+                name: roomName,
+                tracks: localTracks
+            });
+        }).then(room => {
+            // Connected!
+            // Optionally, handle room events here
+            // Example: show status, attach remote tracks, etc.
+            document.getElementById('video-call-status').innerText = 'Connected to video call!';
+        }).catch(error => {
+            alert('You must allow camera and microphone access to join the call!');
+            console.error(error);
+        });
+    });
     </script>
 </body>
 </html>

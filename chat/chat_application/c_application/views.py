@@ -14,6 +14,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login
 from django.views.decorators.http import require_POST
 
+from django.conf import settings
+from django.http import JsonResponse
+from twilio.jwt.access_token import AccessToken
+from twilio.jwt.access_token.grants import VideoGrant
+import os
+
 
 User = get_user_model()  # <--- Use this everywhere
 
@@ -135,6 +141,8 @@ def fetch_messages(request):
             'content': message.content,
             'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
             'image_url': message.image.url if message.image else None,
+            'id': message.id,
+            'reactions': message.reactions,
         }
         for message in messages_qs
     ]
@@ -145,11 +153,26 @@ def fetch_messages(request):
         unread_group = Message.objects.filter(
             recipient__isnull=True, read=False
         ).exclude(sender=request.user).exists()
+        # Check for any new reactions to your messages
+        reacted = False
+        # Only check for reactions on messages not sent by you
+        my_messages = Message.objects.filter(recipient=request.user) | Message.objects.filter(room__participants=request.user)
+        for msg in my_messages:
+            if msg.reactions:
+                for emoji, users in msg.reactions.items():
+                    # If someone else (not you) reacted
+                    if any(str(uid) != str(request.user.id) for uid in users):
+                        reacted = True
+                        break
+            if reacted:
+                break
         notify = None
         if unread_direct:
             notify = "You have a new direct message."
         elif unread_group:
             notify = "You have a new group message."
+        elif reacted:
+            notify = "Someone reacted to your message."
         return JsonResponse({'notify': notify})
     return JsonResponse({'messages': message_data})
 
@@ -252,10 +275,34 @@ def react_to_message(request):
         reactions = msg.reactions or {}
         if emoji not in reactions:
             reactions[emoji] = []
-        if user_id not in reactions[emoji]:
+        if user_id in reactions[emoji]:
+            # Remove reaction if user already reacted
+            reactions[emoji].remove(user_id)
+            # Clean up empty emoji lists
+            if not reactions[emoji]:
+                del reactions[emoji]
+        else:
+            # Add reaction if not already present
             reactions[emoji].append(user_id)
         msg.reactions = reactions
         msg.save()
         return JsonResponse({"ok": True, "reactions": reactions})
     except Message.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Message not found"}, status=404)
+    
+
+
+@login_required
+def video_token(request):
+    # Replace these with your Twilio credentials from the console or .env
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    api_key_sid = os.getenv("TWILIO_API_KEY_SID")
+    api_key_secret = os.getenv("TWILIO_API_KEY_SECRET")
+
+    identity = request.user.username
+    room = request.GET.get('room', 'default-room')
+
+    token = AccessToken(account_sid, api_key_sid, api_key_secret, identity=identity)
+    video_grant = VideoGrant(room=room)
+    token.add_grant(video_grant)
+    return JsonResponse({'token': token.to_jwt().decode()})
