@@ -13,5 +13,7 @@ urlpatterns = [
     path('rooms/<int:room_id>/', views.room_detail, name='room_detail'),
     path('rooms/', views.room_list, name='room_list'),
     path('rooms/<int:room_id>/delete/', views.delete_room, name='delete_room'),
+    path('submit_feedback/', views.submit_feedback, name='submit_feedback'),
+    path('react_to_message/', views.react_to_message, name='react_to_message'),
     path('', views.home, name='home'),
 ]

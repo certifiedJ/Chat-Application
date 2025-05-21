@@ -2,7 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import ChatRoom, Message
+from .models import ChatRoom, Message, Feedback
 from django.contrib import messages
 from .models import Message
 # from django.contrib.auth.models import User
@@ -12,6 +12,7 @@ from django.shortcuts import redirect
 from django.contrib.auth import logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login
+from django.views.decorators.http import require_POST
 
 
 User = get_user_model()  # <--- Use this everywhere
@@ -67,6 +68,15 @@ def chat_home(request):
         user.id: Message.objects.filter(sender=user, recipient=request.user, read=False).count()
         for user in users
     }
+    # Add unread counts for group rooms (messages in room, not sent by current user, and not read by current user)
+    room_unread_counts = {
+        room.id: Message.objects.filter(
+            room=room,
+            recipient__isnull=True,  # group messages
+            read=False
+        ).exclude(sender=request.user).count()
+        for room in rooms
+    }
 
     # Handle room creation from chat_home
     if request.method == "POST" and 'room_name' in request.POST:
@@ -77,12 +87,12 @@ def chat_home(request):
             return redirect('room_detail', room_id=room.id)
         else:
             messages.error(request, "A room with this name already exists. Please choose a different name.")
-            # Optionally: do not add user to existing room
 
     return render(request, 'chat/chat_home.html', {
         'users': users,
         'rooms': rooms,
         'unread_counts': unread_counts,
+        'room_unread_counts': room_unread_counts,
         'request_user': request.user,
     })
 
@@ -100,8 +110,15 @@ def registration_view(request):
     return render(request, 'registration/register.html', {'form': form})
 
 def fetch_messages(request):
+    room_id = request.GET.get('room_id')
     recipient_id = request.GET.get('recipient_id')
-    if recipient_id and request.user.is_authenticated:
+    if room_id and request.user.is_authenticated:
+        try:
+            room = ChatRoom.objects.get(id=room_id)
+            messages_qs = Message.objects.filter(room=room).order_by('timestamp')
+        except ChatRoom.DoesNotExist:
+            return JsonResponse({'messages': []})
+    elif recipient_id and request.user.is_authenticated:
         try:
             recipient = User.objects.get(id=recipient_id)
             messages_qs = Message.objects.filter(
@@ -111,7 +128,7 @@ def fetch_messages(request):
         except User.DoesNotExist:
             return JsonResponse({'messages': []})
     else:
-        messages_qs = Message.objects.all().order_by('timestamp')
+        messages_qs = Message.objects.none()
     message_data = [
         {
             'sender': message.sender.username,
@@ -121,6 +138,19 @@ def fetch_messages(request):
         }
         for message in messages_qs
     ]
+    # Push notification support
+    if request.GET.get("check_unread") and request.user.is_authenticated:
+        # Check for any unread direct or group messages for this user
+        unread_direct = Message.objects.filter(recipient=request.user, read=False).exists()
+        unread_group = Message.objects.filter(
+            recipient__isnull=True, read=False
+        ).exclude(sender=request.user).exists()
+        notify = None
+        if unread_direct:
+            notify = "You have a new direct message."
+        elif unread_group:
+            notify = "You have a new group message."
+        return JsonResponse({'notify': notify})
     return JsonResponse({'messages': message_data})
 
 def logout_view(request):
@@ -175,12 +205,20 @@ def room_list(request):
 @login_required
 def room_detail(request, room_id):
     room = get_object_or_404(ChatRoom, id=room_id)
-    messages = room.messages.order_by('timestamp')  # <--- use .messages if you have related_name set
+    messages = Message.objects.filter(room=room).order_by('timestamp')
+    # Mark all unread group messages as read for this user (if not sent by self)
+    Message.objects.filter(room=room, recipient__isnull=True, read=False).exclude(sender=request.user).update(read=True)
     if request.method == "POST":
         content = request.POST.get("message")
         image = request.FILES.get("image")
         if content or image:
-            Message.objects.create(sender=request.user, room=room, content=content or '', image=image)
+            Message.objects.create(
+                sender=request.user,
+                room=room,
+                content=content or '',
+                image=image,
+                recipient=None  # Explicitly set recipient to None for group messages
+            )
             return redirect('room_detail', room_id=room.id)
     return render(request, 'chat/chat.html', {'room': room, 'messages': messages})
 
@@ -190,3 +228,34 @@ def delete_room(request, room_id):
         room = get_object_or_404(ChatRoom, id=room_id)
         room.delete()
     return redirect('chat_home')
+
+@csrf_exempt
+def submit_feedback(request):
+    if request.method == "POST":
+        feeling = request.POST.get("feeling")
+        comment = request.POST.get("comment", "")
+        user = request.user if request.user.is_authenticated else None
+        Feedback.objects.create(user=user, feeling=feeling, comment=comment)
+        return JsonResponse({"ok": True})
+    return JsonResponse({"ok": False}, status=400)
+
+@csrf_exempt
+@require_POST
+@login_required
+def react_to_message(request):
+    import json
+    message_id = request.POST.get("message_id")
+    emoji = request.POST.get("emoji")
+    user_id = str(request.user.id)
+    try:
+        msg = Message.objects.get(id=message_id)
+        reactions = msg.reactions or {}
+        if emoji not in reactions:
+            reactions[emoji] = []
+        if user_id not in reactions[emoji]:
+            reactions[emoji].append(user_id)
+        msg.reactions = reactions
+        msg.save()
+        return JsonResponse({"ok": True, "reactions": reactions})
+    except Message.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Message not found"}, status=404)
