@@ -294,10 +294,10 @@ def react_to_message(request):
 
 @login_required
 def video_token(request):
-    # Replace these with your Twilio credentials from the console or .env
     account_sid = os.getenv("TWILIO_ACCOUNT_SID")
     api_key_sid = os.getenv("TWILIO_API_KEY_SID")
     api_key_secret = os.getenv("TWILIO_API_KEY_SECRET")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 
     identity = request.user.username
     room = request.GET.get('room', 'default-room')
@@ -305,4 +305,4 @@ def video_token(request):
     token = AccessToken(account_sid, api_key_sid, api_key_secret, identity=identity)
     video_grant = VideoGrant(room=room)
     token.add_grant(video_grant)
-    return JsonResponse({'token': token.to_jwt().decode()})
+    return JsonResponse({'token': token.to_jwt()})
