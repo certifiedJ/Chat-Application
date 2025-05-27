@@ -213,19 +213,32 @@
     </div>
     <!-- Video Call Modal -->
     <div class="modal" tabindex="-1" id="videoCallModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; z-index:9999;">
-      <div style="position:relative; width:90vw; max-width:820px; background:#fff; border-radius:18px; padding:28px 14px 16px 14px; box-shadow:0 6px 42px rgba(0,0,0,0.32); display:flex; flex-direction:column; align-items:center;">
+      <div style="position:relative; width:80vw; max-width:900px; background:#fff; border-radius:18px; padding:32px 18px 18px 18px; box-shadow:0 6px 42px rgba(0,0,0,0.32); display:flex; flex-direction:column; align-items:center;">
           <button id="closeVideoCall" style="position:absolute; top:12px; right:20px; font-size:2em; background:none; border:none; color:#333; cursor:pointer;">&times;</button>
-          <h4 style="margin-bottom:16px; color:#007aff;">Video Call Room</h4>
-          <div id="local-video" style="width:320px; height:220px; background:#f7f7f7; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:12px; display:flex;align-items:center;justify-content:center;">
-            <span style="color:#bbb;">Your video here</span>
+          <h4 style="margin-bottom:18px; color:#007aff;">Video Call Room</h4>
+          <div style="display: flex; flex-direction: row; gap: 28px; justify-content: center; align-items: flex-start; width: 100%; margin-bottom: 10px;">
+              <div id="local-video" style="width:380px; height:270px; background:#f7f7f7; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
+                <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Your video here</span>
+              </div>
+              <div id="remote-video" style="width:380px; height:270px; background:#eef; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
+                <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Other participant</span>
+              </div>
           </div>
-          <div id="remote-video" style="width:320px; height:220px; background:#eef; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;">
-            <span style="color:#bbb;">Other participant</span>
-          </div>
-          <div id="video-call-status" style="margin-top:18px; color:#888; font-size:1.05em;"></div>
+          <div id="video-call-status" style="margin-top:8px; color:#888; font-size:1.12em; min-height:1.5em;"></div>
           <!-- Add these elements for local preview -->
-          <button id="startCallBtn" style="margin-top:18px;">Start Call</button>
-          <div id="local-media" style="margin-top:10px;"></div>
+          <!--button id="startCallBtn" style="margin-top:18px;">Start Call</button>
+          <div id="local-media" style="margin-top:10px;"></div-->
+      </div>
+    </div>
+    <!-- Incoming Call Notification Modal -->
+    <div id="incomingCallModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:10000;">
+      <div style="background:#fff; border-radius:18px; box-shadow:0 8px 32px rgba(0,0,0,0.22); padding:36px 28px; display:flex; flex-direction:column; align-items:center; min-width:260px;">
+        <span style="font-size:2.2em; color:#007aff; margin-bottom:12px;"><i class="fa fa-video"></i></span>
+        <div id="incomingCallFrom" style="font-size:1.15em; font-weight:600; margin-bottom:18px;">Incoming call...</div>
+        <div style="display:flex; gap:18px;">
+          <button id="acceptCallBtn" class="btn btn-success" style="padding:8px 22px; font-size:1.1em;">Accept</button>
+          <button id="declineCallBtn" class="btn btn-danger" style="padding:8px 22px; font-size:1.1em;">Decline</button>
+        </div>
       </div>
     </div>
     <!-- Twilio Video SDK -->
@@ -608,8 +621,44 @@
                 closeCallBtn.onclick();
             }
         };
-    </script>
-    <script>
+
+        // --- Incoming Call Notification Logic ---
+    // WebSocket for call signaling (simple demo, not production-ready)
+    let wsCall = null;
+    let isCalling = false;
+    let callRoomName = "{{ room.name|default:'default-room' }}";
+    let currentUser = "{{ request.user.username }}";
+    let incomingCallModal = document.getElementById('incomingCallModal');
+    let incomingCallFrom = document.getElementById('incomingCallFrom');
+    let acceptCallBtn = document.getElementById('acceptCallBtn');
+    let declineCallBtn = document.getElementById('declineCallBtn');
+
+    function openIncomingCallModal(fromUser) {
+        incomingCallFrom.textContent = `Incoming call from ${fromUser}...`;
+        incomingCallModal.style.display = 'flex';
+    }
+    function closeIncomingCallModal() {
+        incomingCallModal.style.display = 'none';
+    }
+
+    function setupCallWebSocket() {
+        if (wsCall) return;
+        wsCall = new WebSocket(`ws://${window.location.host}/ws/call/${callRoomName}/`);
+        wsCall.onmessage = function(event) {
+            let data = {};
+            try { data = JSON.parse(event.data); } catch {}
+            // If someone else is calling, show incoming call modal
+            if (data.type === 'call' && data.from && data.from !== currentUser) {
+                openIncomingCallModal(data.from);
+            }
+        };
+        wsCall.onclose = function() {
+            wsCall = null;
+        };
+    }
+    setupCallWebSocket();
+
+    // When user presses "Start Call", notify others in the room
     document.getElementById('startCallBtn').addEventListener('click', async function() {
         // Fetch Twilio token for the room
         const roomName = "{{ room.name|default:'default-room' }}";
@@ -625,14 +674,18 @@
 
         Twilio.Video.createLocalTracks({
             audio: true,
-            video: true
+            video: { width: 480, height: 340 }
         }).then(localTracks => {
             // Attach the tracks to the DOM for preview
             const localMediaContainer = document.getElementById('local-media');
-            localMediaContainer.innerHTML = '';
-            localTracks.forEach(track => {
-                localMediaContainer.appendChild(track.attach());
-            });
+            if (localMediaContainer) {
+                localMediaContainer.innerHTML = '';
+                localTracks.forEach(track => {
+                    const el = track.attach();
+                    if (track.kind === "video") setVideoElementSize(el, 480, 340);
+                    localMediaContainer.appendChild(el);
+                });
+            }
             // Connect to Twilio Room with these tracks
             return Twilio.Video.connect(token, {
                 name: roomName,
@@ -640,14 +693,74 @@
             });
         }).then(room => {
             // Connected!
-            // Optionally, handle room events here
-            // Example: show status, attach remote tracks, etc.
             document.getElementById('video-call-status').innerText = 'Connected to video call!';
+            // Attach local video to main video area
+            room.localParticipant.tracks.forEach(publication => {
+                if (publication.track.kind === 'video') {
+                    localVideo.innerHTML = "";
+                    const el = publication.track.attach();
+                    setVideoElementSize(el, 480, 340);
+                    localVideo.appendChild(el);
+                }
+            });
+            // Attach remote video
+            function attachParticipantTracks(participant) {
+                participant.tracks.forEach(publication => {
+                    if (publication.isSubscribed && publication.track.kind === 'video') {
+                        remoteVideo.innerHTML = "";
+                        const el = publication.track.attach();
+                        setVideoElementSize(el, 480, 340);
+                        remoteVideo.appendChild(el);
+                    }
+                });
+                participant.on('trackSubscribed', track => {
+                    if (track.kind === 'video') {
+                        remoteVideo.innerHTML = "";
+                        const el = track.attach();
+                        setVideoElementSize(el, 480, 340);
+                        remoteVideo.appendChild(el);
+                    }
+                });
+            }
+            room.participants.forEach(attachParticipantTracks);
+            room.on('participantConnected', attachParticipantTracks);
+
+            // Cleanup on disconnect
+            room.on('disconnected', () => {
+                callStatus.innerText = "Call ended.";
+                localVideo.innerHTML = '<span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Your video here</span>';
+                remoteVideo.innerHTML = '<span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Other participant</span>';
+            });
         }).catch(error => {
             alert('You must allow camera and microphone access to join the call!');
             console.error(error);
         });
+
+        // Notify others via WebSocket
+        if (wsCall && wsCall.readyState === 1) {
+            wsCall.send(JSON.stringify({type: 'call', from: currentUser}));
+        }
     });
+
+    // Accept/Decline incoming call
+    acceptCallBtn.onclick = function() {
+        closeIncomingCallModal();
+        document.getElementById('startCallBtn').click();
+    };
+    declineCallBtn.onclick = function() {
+        closeIncomingCallModal();
+    };
+
+    // Helper to set video element size for Twilio tracks
+    function setVideoElementSize(videoEl, width=380, height=270) {
+        videoEl.style.width = width + "px";
+        videoEl.style.height = height + "px";
+        videoEl.style.objectFit = "cover";
+        videoEl.style.borderRadius = "14px";
+        videoEl.style.display = "block";
+        videoEl.style.position = "relative";
+        videoEl.style.zIndex = "2";
+    }
     </script>
 </body>
 </html>
