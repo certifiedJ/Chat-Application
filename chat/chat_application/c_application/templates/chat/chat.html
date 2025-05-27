@@ -225,9 +225,14 @@
               </div>
           </div>
           <div id="video-call-status" style="margin-top:8px; color:#888; font-size:1.12em; min-height:1.5em;"></div>
-          <!-- Add these elements for local preview -->
-          <!--button id="startCallBtn" style="margin-top:18px;">Start Call</button>
-          <div id="local-media" style="margin-top:10px;"></div-->
+          <!-- Add End Call Button -->
+          <button id="endCallBtn" style="margin-top:18px; background:#ff4d4d; color:#fff; border:none; border-radius:10px; padding:12px 38px; font-size:1.15em; font-weight:700; box-shadow:0 2px 8px rgba(255,77,77,0.18); cursor:pointer;">
+            <i class="fa fa-phone-slash"></i> End Call
+          </button>
+          <!-- Add local video preview element -->
+          <div id="local-media" style="display:none; margin-top:18px; width:100%; max-width:480px; aspect-ratio: 16/9; background:#f7f7f7; border-radius:14px; overflow:hidden; position:relative;">
+            <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Local video preview</span>
+          </div>
       </div>
     </div>
     <!-- Incoming Call Notification Modal -->
@@ -574,6 +579,23 @@
                     }
                 });
 
+                // Find the audio track
+                const audioTrack = room.localParticipant.audioTracks.getTracks()[0];
+                if (audioTrack) {
+                    // Attach to an <audio> element for local playback (muted to avoid echo)
+                    let audioEl = audioTrack.attach();
+                    audioEl.muted = true;
+                    audioEl.style.display = "none";
+                    document.body.appendChild(audioEl);
+
+                    // Optionally, log or show status
+                    console.log("Microphone is enabled:", audioTrack.isEnabled);
+                    // You can also display a message in your UI:
+                    // document.getElementById('video-call-status').innerText = "Microphone is working!";
+                } else {
+                    alert("No microphone detected.");
+                }
+
                 // Handle remote participants
                 function attachParticipantTracks(participant) {
                     participant.tracks.forEach(publication => {
@@ -761,6 +783,20 @@
         videoEl.style.position = "relative";
         videoEl.style.zIndex = "2";
     }
+
+    // End Call Button logic
+    document.getElementById('endCallBtn').onclick = function() {
+        // Always disconnect the Twilio room if connected
+        if (twilioRoom) {
+            twilioRoom.disconnect();
+            twilioRoom = null;
+        }
+        // Hide the modal and reset UI
+        videoCallModal.style.display = 'none';
+        callStatus.innerText = '';
+        localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
+        remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+    };
     </script>
 </body>
 </html>
