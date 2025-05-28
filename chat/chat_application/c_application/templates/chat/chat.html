@@ -213,28 +213,80 @@
     </div>
     <!-- Video Call Modal -->
     <div class="modal" tabindex="-1" id="videoCallModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; z-index:9999;">
-      <div style="position:relative; width:80vw; max-width:900px; background:#fff; border-radius:18px; padding:32px 18px 18px 18px; box-shadow:0 6px 42px rgba(0,0,0,0.32); display:flex; flex-direction:column; align-items:center;">
-          <button id="closeVideoCall" style="position:absolute; top:12px; right:20px; font-size:2em; background:none; border:none; color:#333; cursor:pointer;">&times;</button>
-          <h4 style="margin-bottom:18px; color:#007aff;">Video Call Room</h4>
-          <div style="display: flex; flex-direction: row; gap: 28px; justify-content: center; align-items: flex-start; width: 100%; margin-bottom: 10px;">
-              <div id="local-video" style="width:380px; height:270px; background:#f7f7f7; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
-                <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Your video here</span>
+      <div class="video-call-animated" style="position:relative; width:80vw; max-width:900px; background:#fff; border-radius:28px; padding:32px 18px 18px 18px; box-shadow:0 6px 42px rgba(0,0,0,0.32); display:flex; flex-direction:column; align-items:center; overflow:hidden;">
+          <button id="closeVideoCall" style="position:absolute; top:12px; right:20px; font-size:2em; background:none; border:none; color:#333; cursor:pointer; z-index:2;">&times;</button>
+          <h4 style="margin-bottom:18px; color:#007aff; letter-spacing:1px; font-size:2em; font-weight:700; text-shadow:0 2px 16px #00c6ff44;">Video Call Room</h4>
+          <div class="video-call-glow"></div>
+          <div style="display: flex; flex-direction: row; gap: 28px; justify-content: center; align-items: flex-start; width: 100%; margin-bottom: 10px; position:relative; z-index:1;">
+              <div id="local-video-led" style="display:flex;align-items:center;justify-content:center;">
+                  <div id="local-video" style="width:380px; height:270px; background:#f7f7f7; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
+                      <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Your video here</span>
+                  </div>
+                  <!-- Mute/Unmute Button -->
+                  <button id="muteBtn" class="btn btn-outline-secondary" style="position:absolute; bottom:16px; left:16px; z-index:3; border-radius:50%; width:44px; height:44px; display:flex;align-items:center;justify-content:center;">
+                    <i id="muteIcon" class="fa fa-microphone"></i>
+                  </button>
               </div>
-              <div id="remote-video" style="width:380px; height:270px; background:#eef; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
+              <div id="remote-video" class="video-float" style="width:380px; height:270px; background:#eef; border-radius:18px; box-shadow:0 2px 18px 0 #007aff55; display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
                 <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Other participant</span>
               </div>
           </div>
           <div id="video-call-status" style="margin-top:8px; color:#888; font-size:1.12em; min-height:1.5em;"></div>
-          <!-- Add End Call Button -->
-          <button id="endCallBtn" style="margin-top:18px; background:#ff4d4d; color:#fff; border:none; border-radius:10px; padding:12px 38px; font-size:1.15em; font-weight:700; box-shadow:0 2px 8px rgba(255,77,77,0.18); cursor:pointer;">
-            <i class="fa fa-phone-slash"></i> End Call
-          </button>
+          <div id="call-timer" style="font-weight:600; color:#007aff; font-size:1.25em; margin:12px 0 0 0; letter-spacing:1px; display:none;">
+              00:00
+          </div>
           <!-- Add local video preview element -->
           <div id="local-media" style="display:none; margin-top:18px; width:100%; max-width:480px; aspect-ratio: 16/9; background:#f7f7f7; border-radius:14px; overflow:hidden; position:relative;">
             <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Local video preview</span>
           </div>
       </div>
     </div>
+    <style>
+      /* Video Call Modal Animation */
+      .video-call-animated {
+        border: 4px solid transparent;
+        box-shadow: 0 0 32px 8px #00c6ff33, 0 0 0 8px #fff0;
+        animation: borderGlow 2.8s linear infinite;
+      }
+      @keyframes borderGlow {
+        0% {
+          box-shadow: 0 0 32px 8px #00c6ff33, 0 0 0 8px #fff0;
+          border-color: #00c6ff;
+        }
+        50% {
+          box-shadow: 0 0 48px 16px #007aff66, 0 0 0 8px #00eaff33;
+          border-color: #007aff;
+        }
+        100% {
+          box-shadow: 0 0 32px 8px #00c6ff33, 0 0 0 8px #fff0;
+          border-color: #00c6ff;
+        }
+      }
+      .video-call-glow {
+        position: absolute;
+        top: -60px; left: -60px; right: -60px; bottom: -60px;
+        z-index: 0;
+        pointer-events: none;
+        border-radius: 40px;
+        background: radial-gradient(circle at 30% 30%, #00eaff55 0%, #007aff22 60%, transparent 100%);
+        filter: blur(32px);
+        animation: videoGlowPulse 5s ease-in-out infinite;
+      }
+      @keyframes videoGlowPulse {
+        0%,100% { opacity: 0.7; }
+        50% { opacity: 1; }
+      }
+      .video-float {
+        animation: floatVideo 4s ease-in-out infinite;
+      }
+      .video-float:nth-child(2) {
+        animation-delay: 2s;
+      }
+      @keyframes floatVideo {
+        0%,100% { transform: translateY(0px) scale(1);}
+        50% { transform: translateY(-18px) scale(1.03);}
+      }
+    </style>
     <!-- Incoming Call Notification Modal -->
     <div id="incomingCallModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:10000;">
       <div style="background:#fff; border-radius:18px; box-shadow:0 8px 32px rgba(0,0,0,0.22); padding:36px 28px; display:flex; flex-direction:column; align-items:center; min-width:260px;">
@@ -249,6 +301,25 @@
     <!-- Twilio Video SDK -->
     <script src="//sdk.twilio.com/js/video/releases/2.17.1/twilio-video.min.js"></script>
     <script>
+        let callStartTime = null;
+        let callTimerInterval = null;
+
+        function startCallTimer() {
+            callStartTime = Date.now();
+            document.getElementById('call-timer').style.display = 'block';
+            callTimerInterval = setInterval(() => {
+                let seconds = Math.floor((Date.now() - callStartTime) / 1000);
+                let m = Math.floor(seconds / 60);
+                let s = seconds % 60;
+                document.getElementById('call-timer').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            clearInterval(callTimerInterval);
+            document.getElementById('call-timer').style.display = 'none';
+            document.getElementById('call-timer').textContent = '00:00';
+        }
         let lastMessageId = null;
         let lastSender = null; 
 
@@ -489,36 +560,56 @@
         // Send message without refresh
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            // Always get the latest CSRF token from the cookie
+            const csrfToken = getCookie('csrftoken');
             const formData = new FormData(messageForm);
-            if (!formData.has('csrfmiddlewaretoken')) {
-                formData.append('csrfmiddlewaretoken', csrftoken);
-            }
+            // Ensure the CSRF token is included in the headers
             {% if room %}
             fetch("{% url 'room_detail' room.id %}",  {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrftoken
+                    'X-CSRFToken': csrfToken
                 },
-                body: formData
+                body: formData,
+                credentials: 'same-origin'
             })
-            .then(response => response.ok ? fetchMessages() : null)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('CSRF verification failed.');
+                }
+                return fetchMessages();
+            })
             .then(() => {
                 messageInput.value = '';
                 document.getElementById('imageInput').value = '';
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Failed to send message. Please try again.');
             });
             {% else %}
             fetch(`/chat/{{ recipient_id }}/`,  {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrftoken
+                    'X-CSRFToken': csrfToken
                 },
-                body: formData
+                body: formData,
+                credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('CSRF verification failed.');
+                }
+                return response.json();
+            })
             .then(data => {
                 messageInput.value = '';
                 document.getElementById('imageInput').value = '';
                 appendSingleMessage(data);
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Failed to send message. Please try again.');
             });
             {% endif %}
         });
@@ -543,6 +634,7 @@
         const remoteVideo = document.getElementById('remote-video');
         const callStatus = document.getElementById('video-call-status');
         let twilioRoom = null;
+        let localAudioTrack = null;
 
         // 1. Fetch Twilio Access Token from your server
         async function fetchTwilioToken(roomName) {
@@ -556,13 +648,9 @@
             videoCallModal.style.display = 'flex';
             callStatus.innerText = 'Connecting...';
 
-            // 2. Pick a room name (could be based on Django room.id or room.name)
             const roomName = "{{ room.name|default:'default-room' }}";
-
-            // 3. Get access token (for now, you can paste a dev token here for testing)
             let token = await fetchTwilioToken(roomName);
 
-            // 4. Connect to Twilio room and render video
             Twilio.Video.connect(token, {
                 name: roomName,
                 audio: true,
@@ -570,6 +658,7 @@
             }).then(room => {
                 twilioRoom = room;
                 callStatus.innerText = "Connected to video call!";
+                startCallTimer();
 
                 // Local participant
                 room.localParticipant.tracks.forEach(publication => {
@@ -577,24 +666,17 @@
                         localVideo.innerHTML = "";
                         localVideo.appendChild(publication.track.attach());
                     }
+                    if (publication.track.kind === 'audio') {
+                        // Save reference to local audio track for mute/unmute
+                        localAudioTrack = publication.track;
+                        // Attach local audio (muted to avoid echo)
+                        const audioEl = publication.track.attach();
+                        audioEl.muted = true;
+                        audioEl.style.display = "none";
+                        document.body.appendChild(audioEl);
+                        callStatus.innerText += " | Microphone is ON";
+                    }
                 });
-
-                // Find the audio track
-                const audioTrack = room.localParticipant.audioTracks.getTracks()[0];
-                if (audioTrack) {
-                    // Attach to an <audio> element for local playback (muted to avoid echo)
-                    let audioEl = audioTrack.attach();
-                    audioEl.muted = true;
-                    audioEl.style.display = "none";
-                    document.body.appendChild(audioEl);
-
-                    // Optionally, log or show status
-                    console.log("Microphone is enabled:", audioTrack.isEnabled);
-                    // You can also display a message in your UI:
-                    // document.getElementById('video-call-status').innerText = "Microphone is working!";
-                } else {
-                    alert("No microphone detected.");
-                }
 
                 // Handle remote participants
                 function attachParticipantTracks(participant) {
@@ -603,11 +685,22 @@
                             remoteVideo.innerHTML = "";
                             remoteVideo.appendChild(publication.track.attach());
                         }
+                        if (publication.isSubscribed && publication.track.kind === 'audio') {
+                            // Attach remote audio (not muted)
+                            const remoteAudioEl = publication.track.attach();
+                            remoteAudioEl.style.display = "none";
+                            document.body.appendChild(remoteAudioEl);
+                        }
                     });
                     participant.on('trackSubscribed', track => {
                         if (track.kind === 'video') {
                             remoteVideo.innerHTML = "";
                             remoteVideo.appendChild(track.attach());
+                        }
+                        if (track.kind === 'audio') {
+                            const remoteAudioEl = track.attach();
+                            remoteAudioEl.style.display = "none";
+                            document.body.appendChild(remoteAudioEl);
                         }
                     });
                 }
@@ -620,10 +713,25 @@
                     callStatus.innerText = "Call ended.";
                     localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
                     remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+                    stopCallTimer();
                 });
             }, error => {
                 callStatus.innerText = "Unable to join video call: " + error.message;
             });
+        };
+
+        // Mute/Unmute Button Logic
+        document.getElementById('muteBtn').onclick = function() {
+            if (!localAudioTrack) return;
+            if (localAudioTrack.isEnabled) {
+                localAudioTrack.disable();
+                document.getElementById('muteIcon').className = "fa fa-microphone-slash";
+                callStatus.innerText = callStatus.innerText.replace("Microphone is ON", "Microphone is MUTED");
+            } else {
+                localAudioTrack.enable();
+                document.getElementById('muteIcon').className = "fa fa-microphone";
+                callStatus.innerText = callStatus.innerText.replace("Microphone is MUTED", "Microphone is ON");
+            }
         };
 
         closeCallBtn.onclick = function() {
@@ -635,6 +743,10 @@
             }
             localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
             remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+            stopCallTimer();
+            // Reset mute button/icon
+            document.getElementById('muteIcon').className = "fa fa-microphone";
+            localAudioTrack = null;
         };
 
         // Hide modal on clicking outside the modal content
@@ -752,6 +864,7 @@
                 callStatus.innerText = "Call ended.";
                 localVideo.innerHTML = '<span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Your video here</span>';
                 remoteVideo.innerHTML = '<span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Other participant</span>';
+                stopCallTimer();
             });
         }).catch(error => {
             alert('You must allow camera and microphone access to join the call!');
@@ -786,9 +899,19 @@
 
     // End Call Button logic
     document.getElementById('endCallBtn').onclick = function() {
-        // Always disconnect the Twilio room if connected
+        // Ensure Twilio room disconnect logic is executed
         if (twilioRoom) {
             twilioRoom.disconnect();
+            twilioRoom.localParticipant.tracks.forEach(publication => {
+                if (publication.track) {
+                    publication.track.stop(); // Stop the track
+                    publication.track.detach().forEach(element => {
+                        if (element.parentNode) {
+                            element.parentNode.removeChild(element); // Remove video elements from DOM
+                        }
+                    });
+                }
+            });
             twilioRoom = null;
         }
         // Hide the modal and reset UI
@@ -796,6 +919,7 @@
         callStatus.innerText = '';
         localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
         remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+        stopCallTimer();
     };
     </script>
 </body>
