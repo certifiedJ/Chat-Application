@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-ukv!$_^iuf8hs=!)t(@k7d@lk^3kx9tzgd)vi_0jnu#myjh9u8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.2.245', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".onrender.com"]
 
 
 # Application definition
@@ -125,6 +125,7 @@ LOGIN_REDIRECT_URL = '/chat/'
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -143,5 +144,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Twilio
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+
+# Channels/Redis
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
+        },
+    },
+}
