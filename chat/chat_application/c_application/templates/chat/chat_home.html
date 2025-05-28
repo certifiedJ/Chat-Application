@@ -2,36 +2,28 @@
 <html>
 <head>
     <title>Chat Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .notification-badge {
-            background: #ff4d4d;
-            color: white;
-            border-radius: 50%;
-            padding: 3px 10px;
-            font-size: 0.9em;
-            font-weight: bold;
-            position: absolute;
-            top: 10px; right: 10px;
-            z-index: 20;
-        }
-        .user-card {
-            position: relative;
-        }
-        @keyframes animatedGradient {
-            0% {background-position: 0% 50%;}
-            50% {background-position: 100% 50%;}
-            100% {background-position: 0% 50%;}
+        :root {
+            --main-bg: linear-gradient(270deg, #6a11cb, #2575fc, #ff6a00, #ee7752);
+            --user-card-bg: rgba(255, 255, 255, 0.18);
+            --user-list-bg: rgba(255, 255, 255, 0.12);
+            --text-color: #fff;
+            --badge-bg: #ff4d4d;
+            --chat-btn-bg: rgba(0, 123, 255, 0.8);
         }
         body {
             font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(270deg, #6a11cb, #2575fc, #ff6a00, #ee7752);
+            background: var(--main-bg);
             background-size: 800% 800%;
             animation: animatedGradient 20s ease infinite;
             margin: 0;
             padding: 20px;
             min-height: 100vh;
+            color: var(--text-color);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             display: flex;
@@ -39,7 +31,7 @@
             align-items: center;
         }
         .main-content {
-            margin-top: 110px; /* Pushes content below fixed elements */
+            margin-top: 110px;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -109,7 +101,7 @@
             flex-wrap: wrap;
             gap: 20px;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.12);
+            background: var(--user-list-bg);
             border-radius: 25px;
             padding: 30px 40px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
@@ -122,7 +114,7 @@
             margin-top: 0;
         }
         .user-card {
-            background: rgba(255, 255, 255, 0.18);
+            background: var(--user-card-bg);
             border-radius: 20px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
             padding: 25px 20px;
@@ -132,7 +124,7 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.25);
-            color: #fff;
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -162,7 +154,7 @@
             margin-top: auto;
             padding: 12px 25px;
             border: none;
-            background-color: rgba(0, 123, 255, 0.8);
+            background-color: var(--chat-btn-bg);
             color: white;
             border-radius: 12px;
             cursor: pointer;
@@ -182,35 +174,84 @@
             font-weight: 600;
             text-shadow: 0 0 5px rgba(0,0,0,0.25);
         }
+        .notification-badge {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            background: #ff4d4d;
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px 7px;
+            font-size: 0.95em;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255,77,77,0.18);
+            z-index: 10;
+            border: 2px solid #fff;
+            min-width: 22px;
+            text-align: center;
+        }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px);}
             to { opacity: 1; transform: translateY(0);}
         }
+        @keyframes animatedGradient {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
 
         /* Responsive */
         @media (max-width: 768px) {
-            h2 { font-size: 2.4em; margin-bottom: 25px;}
-            .user-list { padding: 25px 20px; width: 95%; margin-top: 0;}
-            .main-content { margin-top: 90px; }
-            .user-card { width: 45%; padding: 20px 15px; }
-            .chat-button { padding: 10px 18px; font-size: 0.95em; }
-            .current-user { font-size: 1.1em; padding: 12px 25px; top: 15px; }
-            .logout { top: 15px; right: 15px; }
+            h2 { font-size: 2.1em; margin-bottom: 18px;}
+            .user-list { padding: 18px 4vw; width: 100%; margin-top: 0;}
+            .main-content { margin-top: 80px; }
+            .user-card { width: 90vw; min-width: 0; max-width: 100%; padding: 16px 8px; }
+            .chat-button { padding: 9px 14px; font-size: 0.98em; }
+            .current-user { font-size: 1em; padding: 10px 10vw; top: 10px; left: 50%; }
+            .logout { top: 10px; right: 10px; }
         }
-
         @media (max-width: 480px) {
-            .user-card { width: 100%; padding: 18px 15px;}
-            h2 { font-size: 2em; margin-bottom: 20px;}
-            .main-content { margin-top: 70px; }
-            .current-user { font-size: 1em; padding: 10px 20px; top: 10px;}
-            .logout a { font-size: 1em; padding: 8px 15px;}
+            .user-card { width: 100vw; padding: 12px 4vw;}
+            h2 { font-size: 1.3em; margin-bottom: 12px;}
+            .main-content { margin-top: 60px; }
+            .current-user { font-size: 0.95em; padding: 8px 4vw; top: 5px;}
+            .logout a { font-size: 0.95em; padding: 6px 10px;}
+            .user-list { gap: 10px; }
         }
+        /* Add horizontal scroll for user-list on small screens */
+        @media (max-width: 600px) {
+            .user-list {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 12px;
+            }
+            .user-card {
+                min-width: 220px;
+                flex: 0 0 auto;
+            }
+        }
+        /* Hide scrollbars on mobile for cleaner look */
+        .user-list::-webkit-scrollbar { display: none; }
+        .user-list { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
+    {% load custom_filters %}
+    <!-- Feedback Button -->
+    <button id="feedback-btn" class="btn btn-outline-light" style="position:fixed;top:20px;left:20px;z-index:20;border-radius:50px;padding:7px 18px;font-size:1em;">
+        <i class="fas fa-comment-dots"></i> <span>Feedback</span>
+    </button>
     <div class="current-user">
-        <p>Logged in as: <strong>{{ request.user.username }}</strong></p>
-    </div>
+    <p>
+        Logged in as: <strong>{{ request.user.username }}</strong>
+        {% if request.user.profile_image %}
+            <img src="{{ request.user.profile_image.url }}" alt="profile image"
+                style="width:38px;height:38px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-left:12px;">
+        {% else %}
+            <i class="fas fa-user-circle" style="font-size:2em;margin-left:12px;"></i>
+        {% endif %}
+    </p>
+</div>
     <div class="logout">
         <a href="{% url 'logout' %}">
             <i class="fas fa-sign-out-alt"></i> Logout
@@ -220,25 +261,190 @@
         <h2>Available Users to Chat</h2>
         <div class="user-list" style="justify-content: center; align-items: center;">
         {% for user in users %}
-            <div class="user-card">
-                <i class="fas fa-user-circle"></i>
-                <a href="{% url 'chat' user.id %}">{{ user.username }}</a>
-                <p class="user-status">
+            <div class="user-card" style="position:relative;">
+                {% if unread_counts|get_item:user.id > 0 %}
+                    <span class="notification-badge">{{ unread_counts|get_item:user.id }}</span>
+                {% endif %}
+
+                <!-- Profile Image or User Icon -->
+                <div style="margin-bottom: 18px;">
+                    {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="profile image" style="width:70px;height:70px;border-radius:50%;object-fit:cover;">
+                    {% else %}
+                        <i class="fas fa-user-circle"></i>
+                    {% endif %}
+                </div>
+
+                <!-- Username -->
+                <div style="margin-bottom: 10px;">
+                    <a href="{% url 'chat' user.id %}">{{ user.username }}</a>
+                </div>
+
+                <!-- User Status -->
+                <div class="user-status" style="margin-bottom: 18px;">
                     {% if user.is_online %}
                         <span style="color: #7fff7f;">Online</span>
                     {% else %}
                         <span style="color: #ff7f7f;">Offline</span>
                     {% endif %}
-                </p>
+                </div>
+
+                <!-- Start Chat Button -->
                 <button onclick="startChat('{{ user.id }}')" class="chat-button">Start Chat</button>
             </div>
         {% endfor %}
+        </div> <!-- End of user-list -->
+
+        <!-- Add Group Chat Rooms section below user-list -->
+        <h2 style="margin-top: 36px;">Group Chat Rooms</h2>
+        <div class="user-list" style="justify-content: center; align-items: center;">
+            {% if rooms %}
+                {% for room in rooms %}
+                    <div class="user-card" style="background:rgba(255,255,255,0.22);">
+                        <!-- Notification Badge for group room -->
+                        {% if room_unread_counts and room_unread_counts|get_item:room.id > 0 %}
+                            <span class="notification-badge">{{ room_unread_counts|get_item:room.id }}</span>
+                        {% endif %}
+                        <i class="fas fa-users"></i>
+                        <div style="margin: 16px 0 10px 0;">
+                            <a href="{% url 'room_detail' room.id %}" style="color: #ffe082;">{{ room.name }}</a>
+                        </div>
+                        <div class="user-status" style="margin-bottom: 14px;">
+                            Participants: {{ room.participants.count }}
+                        </div>
+                        <button onclick="window.location.href='{% url 'room_detail' room.id %}'" class="chat-button">
+                            Join Room
+                        </button>
+                        <!-- Delete Room Form/Button -->
+                        <form method="POST" action="{% url 'delete_room' room.id %}" style="margin-top:8px;">
+                            {% csrf_token %}
+                            <button type="submit" style="background: #ff4d4d; color: #fff; border-radius: 8px; padding: 7px 15px; border: none; cursor: pointer;">
+                                Delete Room
+                            </button>
+                        </form>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="color:white;">No rooms yet. Create one!</p>
+            {% endif %}
+        </div>
+
+        <!-- Room creation form -->
+        <form method="POST" style="margin-top: 18px; text-align:center;">
+            {% csrf_token %}
+            <input type="text" name="room_name" placeholder="Create new room..." required style="padding:9px 15px; border-radius:12px; border:1px solid #ccc; margin-right:8px;">
+            <button type="submit" class="chat-button" style="background:#00b894;">Create Room</button>
+        </form>
+    </div> <!-- End of main-content -->
+
+    <!-- Feedback Modal -->
+    <div id="feedback-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:#fff;max-width:350px;width:90vw;padding:28px 22px 18px 22px;border-radius:18px;box-shadow:0 8px 32px 0 rgba(31,38,135,0.25);position:relative;">
+            <button onclick="closeFeedback()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.5em;color:#888;cursor:pointer;">&times;</button>
+            <h4 style="margin-top:0;color:#2575fc;font-family:'Poppins';text-align:center;">We value your feedback!</h4>
+            <form id="feedback-form" style="margin-top:18px;">
+                <label style="font-weight:600;">How do you feel about this app?</label>
+                <div style="margin:12px 0 18px 0;text-align:center;">
+                    <button type="button" class="feedback-emoji" data-value="love" style="font-size:2em;background:none;border:none;cursor:pointer;">😍</button>
+                    <button type="button" class="feedback-emoji" data-value="like" style="font-size:2em;background:none;border:none;cursor:pointer;">😊</button>
+                    <button type="button" class="feedback-emoji" data-value="ok" style="font-size:2em;background:none;border:none;cursor:pointer;">😐</button>
+                    <button type="button" class="feedback-emoji" data-value="dislike" style="font-size:2em;background:none;border:none;cursor:pointer;">😕</button>
+                    <button type="button" class="feedback-emoji" data-value="hate" style="font-size:2em;background:none;border:none;cursor:pointer;">😡</button>
+                </div>
+                <textarea id="feedback-text" rows="3" placeholder="Tell us more (optional)..." style="width:100%;border-radius:8px;border:1px solid #ccc;padding:8px 10px;resize:none;"></textarea>
+                <button type="submit" class="btn btn-primary" style="margin-top:14px;width:100%;border-radius:8px;">Submit Feedback</button>
+            </form>
+            <div id="feedback-thankyou" style="display:none;text-align:center;margin-top:18px;">
+                <span style="font-size:1.3em;color:#2575fc;">Thank you for your feedback!</span>
+            </div>
         </div>
     </div>
+
     <script>
         function startChat(userId) {
             window.location.href = `/chat/${userId}/`;
         }
+
+        // Feedback modal logic
+        const feedbackBtn = document.getElementById('feedback-btn');
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackForm = document.getElementById('feedback-form');
+        const feedbackThankyou = document.getElementById('feedback-thankyou');
+        let selectedFeeling = null;
+        feedbackBtn.onclick = function() {
+            feedbackModal.style.display = 'flex';
+            feedbackForm.style.display = '';
+            feedbackThankyou.style.display = 'none';
+        };
+        function closeFeedback() {
+            feedbackModal.style.display = 'none';
+        }
+        document.querySelectorAll('.feedback-emoji').forEach(btn => {
+            btn.onclick = function() {
+                selectedFeeling = this.getAttribute('data-value');
+                document.querySelectorAll('.feedback-emoji').forEach(b => b.style.opacity = "0.5");
+                this.style.opacity = "1";
+            };
+        });
+        feedbackForm.onsubmit = function(e) {
+            e.preventDefault();
+            if (!selectedFeeling) {
+                alert("Please select how you feel about the app.");
+                return;
+            }
+            // Send feedback to backend
+            fetch("{% url 'submit_feedback' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCookie('csrftoken'),
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: "feeling=" + encodeURIComponent(selectedFeeling) + "&comment=" + encodeURIComponent(document.getElementById('feedback-text').value)
+            }).then(() => {
+                feedbackForm.style.display = 'none';
+                feedbackThankyou.style.display = '';
+                setTimeout(closeFeedback, 1800);
+            });
+        };
+
+        // Helper for CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Browser Push Notifications for new messages
+        document.addEventListener("DOMContentLoaded", function() {
+            if ("Notification" in window && Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+        });
+
+        // Poll for new unread messages every 10 seconds
+        setInterval(function() {
+            fetch("{% url 'fetch_messages' %}?check_unread=1", {
+                credentials: "same-origin"
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.notify && Notification.permission === "granted") {
+                    new Notification("New Message", {
+                        body: data.notify,
+                        icon: "https://cdn-icons-png.flaticon.com/512/1384/1384031.png"
+                    });
+                }
+            });
+        }, 10000);
     </script>
 </body>
 </html>

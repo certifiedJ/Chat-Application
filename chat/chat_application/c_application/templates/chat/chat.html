@@ -145,7 +145,23 @@
             background: #b0b0b0;
             border-radius: 8px;
         }
-        @media (max-width: 500px) {
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4d4d;
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px 7px;
+            font-size: 0.95em;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255,77,77,0.18);
+            z-index: 10;
+            border: 2px solid #fff;
+            min-width: 22px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
             .chat-container {
                 width: 100vw;
                 height: 100vh;
@@ -162,16 +178,24 @@
         <i class="fa fa-arrow-left"></i> Back
     </button>
     <div class="chat-container">
-        <!-- Chat header with recipient avatar and name -->
+        <!-- Chat header with room or recipient name -->
         <div style="display: flex; align-items: center; justify-content: center; gap: 14px; background: linear-gradient(90deg, #e0eafc 0%, #cfdef3 100%); border-bottom: 1px solid #e0e0e0; padding: 18px 0 10px 0; border-radius: 28px 28px 0 0;">
             <span style="display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 50%; width: 48px; height: 48px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <i class="fa-solid fa-user" style="font-size: 2em; color: #007aff;"></i>
+                <i class="fa-solid fa-users" style="font-size: 2em; color: #007aff;"></i>
             </span>
             <span style="font-weight:700; font-size:1.3em; color:#007aff; letter-spacing:1px;">
-                {{ recipient.username }}
+                {% if room %}{{ room.name }}{% else %}{{ recipient.username }}{% endif %}
             </span>
+            <!-- ADD START CALL BUTTON HERE -->
+            <button id="start-video-call" class="btn btn-outline-primary" style="margin-left: auto; margin-right: 18px; display: flex; align-items: center; gap:6px;">
+                <i class="fa fa-video"></i> Start Call
+            </button>
         </div>
         <div id="chat-box"></div>
+        <span id="chat-notification-badge" class="notification-badge" style="display:none;"></span>
+        <div id="typing-indicator" style="font-style: italic; color: #888; display: none; margin-left:12px; margin-bottom:4px;">
+            {{ recipient.username }} is typing...
+        </div>
         <form id="messageForm" method="POST" class="input-container" enctype="multipart/form-data" style="border-radius: 0 0 28px 28px;">
             {% csrf_token %}
             <input id="messageInput" type="text" name="message" placeholder="Type your message..." autocomplete="off" required style="margin-right:8px;">
@@ -187,20 +211,43 @@
         <span id="closeModal" style="position:absolute; top:30px; right:40px; color:#fff; font-size:2.5em; cursor:pointer; font-weight:bold; z-index:10001;">&times;</span>
         <img id="modalImg" src="" style="max-width:90vw; max-height:85vh; border-radius:18px; box-shadow:0 4px 32px rgba(0,0,0,0.5); border:8px solid #fff;">
     </div>
-    <div style="display:none" id="django-messages-render">
-      {% for message in messages %}
-          <div class="message">
-              <strong>{{ message.sender.username }}:</strong>
-              {{ message.content|linebreaksbr }}
-              {% if message.image %}
-                  <div>
-                      <img src="{{ message.image.url }}" alt="image" style="max-width: 200px; max-height: 200px;">
-                  </div>
-              {% endif %}
-              <small>{{ message.timestamp }}</small>
+    <!-- Video Call Modal -->
+    <div class="modal" tabindex="-1" id="videoCallModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; z-index:9999;">
+      <div style="position:relative; width:80vw; max-width:900px; background:#fff; border-radius:18px; padding:32px 18px 18px 18px; box-shadow:0 6px 42px rgba(0,0,0,0.32); display:flex; flex-direction:column; align-items:center;">
+          <button id="closeVideoCall" style="position:absolute; top:12px; right:20px; font-size:2em; background:none; border:none; color:#333; cursor:pointer;">&times;</button>
+          <h4 style="margin-bottom:18px; color:#007aff;">Video Call Room</h4>
+          <div style="display: flex; flex-direction: row; gap: 28px; justify-content: center; align-items: flex-start; width: 100%; margin-bottom: 10px;">
+              <div id="local-video" style="width:380px; height:270px; background:#f7f7f7; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
+                <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Your video here</span>
+              </div>
+              <div id="remote-video" style="width:380px; height:270px; background:#eef; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex;align-items:center;justify-content:center;overflow:hidden; position:relative;">
+                <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Other participant</span>
+              </div>
           </div>
-      {% endfor %}
+          <div id="video-call-status" style="margin-top:8px; color:#888; font-size:1.12em; min-height:1.5em;"></div>
+          <!-- Add End Call Button -->
+          <button id="endCallBtn" style="margin-top:18px; background:#ff4d4d; color:#fff; border:none; border-radius:10px; padding:12px 38px; font-size:1.15em; font-weight:700; box-shadow:0 2px 8px rgba(255,77,77,0.18); cursor:pointer;">
+            <i class="fa fa-phone-slash"></i> End Call
+          </button>
+          <!-- Add local video preview element -->
+          <div id="local-media" style="display:none; margin-top:18px; width:100%; max-width:480px; aspect-ratio: 16/9; background:#f7f7f7; border-radius:14px; overflow:hidden; position:relative;">
+            <span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Local video preview</span>
+          </div>
+      </div>
     </div>
+    <!-- Incoming Call Notification Modal -->
+    <div id="incomingCallModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:10000;">
+      <div style="background:#fff; border-radius:18px; box-shadow:0 8px 32px rgba(0,0,0,0.22); padding:36px 28px; display:flex; flex-direction:column; align-items:center; min-width:260px;">
+        <span style="font-size:2.2em; color:#007aff; margin-bottom:12px;"><i class="fa fa-video"></i></span>
+        <div id="incomingCallFrom" style="font-size:1.15em; font-weight:600; margin-bottom:18px;">Incoming call...</div>
+        <div style="display:flex; gap:18px;">
+          <button id="acceptCallBtn" class="btn btn-success" style="padding:8px 22px; font-size:1.1em;">Accept</button>
+          <button id="declineCallBtn" class="btn btn-danger" style="padding:8px 22px; font-size:1.1em;">Decline</button>
+        </div>
+      </div>
+    </div>
+    <!-- Twilio Video SDK -->
+    <script src="//sdk.twilio.com/js/video/releases/2.17.1/twilio-video.min.js"></script>
     <script>
         let lastMessageId = null;
         let lastSender = null; 
@@ -208,6 +255,30 @@
         const chatBox = document.getElementById('chat-box');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
+        // Typing Indicator logic
+        let typingTimer;
+        const typingIndicator = document.getElementById('typing-indicator');
+        messageInput.addEventListener('input', function() {
+            fetch(`/chat/typing/{{ recipient_id }}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            });
+        });
+
+        // Poll for typing indicator every 1.2s
+        setInterval(function() {
+            fetch(`/chat/is_typing/{{ recipient_id }}/`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.is_typing) {
+                        typingIndicator.style.display = '';
+                    } else {
+                        typingIndicator.style.display = 'none';
+                    }
+                });
+        }, 1200);
         // CSRF Token Extraction
         function getCookie(name) {
             let cookieValue = null;
@@ -232,6 +303,8 @@
 
         // Render messages like iMessage
        function renderMessages(messages) {
+            // Save current scroll position and check if user is at the bottom
+            const atBottom = Math.abs(chatBox.scrollTop + chatBox.clientHeight - chatBox.scrollHeight) < 5;
             chatBox.innerHTML = '';
             messages.forEach((message, idx) => {
                 const row = document.createElement('div');
@@ -248,12 +321,56 @@
                 if (message.image_url) {
                     contentHtml += `<img src="${message.image_url}" class="chat-img-thumb" style="max-width:180px; border-radius:12px; margin-top:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer;">`;
                 }
+                // iMessage-style reactions (overlay on bubble, grouped)
+                const emojis = ['👍','😂','😍','😮','😢','😡'];
+                let reactions = message.reactions || {};
+                let reactionDisplay = '';
+                let totalReactions = 0;
+                let userReacted = false;
+                emojis.forEach(emoji => {
+                    let count = reactions[emoji] ? reactions[emoji].length : 0;
+                    if (count > 0) {
+                        // Always compare as string (user ids are strings in JSON)
+                        let highlight = reactions[emoji].map(String).includes("{{ request.user.id }}") ? "background:#e0f7fa;border-radius:8px;" : "";
+                        if (highlight) userReacted = true;
+                        reactionDisplay += `<span class="imessage-reaction" style="margin-right:2px;${highlight}">${emoji}${count > 1 ? `<span style='font-size:0.85em;'>${count}</span>` : ''}</span>`;
+                        totalReactions += count;
+                    }
+                });
+                if (reactionDisplay) {
+                    // Overlay reactions at top-right of bubble (ALWAYS VISIBLE)
+                    contentHtml += `<div class="imessage-reaction-bar" style="position:absolute;top:-12px;right:8px;display:flex;gap:2px;z-index:2;padding:2px 6px;background:#fff;border-radius:14px;border:1px solid #e0e0e0;box-shadow:0 1px 4px rgba(0,0,0,0.07);font-size:1.08em;">${reactionDisplay}</div>`;
+                }
+                // Reaction picker (hidden by default, shown on hover/tap)
+                contentHtml += `
+                <div class="imessage-reaction-picker" style="display:none;position:absolute;bottom:100%;right:10px;background:#fff;border-radius:18px;box-shadow:0 2px 8px rgba(0,0,0,0.13);padding:4px 10px;z-index:10;">
+                    ${emojis.map(emoji => `<button class="react-btn" data-mid="${message.id}" data-emoji="${emoji}" style="background:none;border:none;cursor:pointer;font-size:1.3em;padding:2px 4px;">${emoji}</button>`).join('')}
+                </div>
+                `;
                 contentHtml += `<span class="timestamp" style="margin-top:6px;">${message.timestamp}</span>`;
                 bubble.innerHTML = contentHtml;
+                // Add hover/tap logic for reaction picker
+                bubble.onmouseenter = function() {
+                    this.querySelector('.imessage-reaction-picker').style.display = 'flex';
+                };
+                bubble.onmouseleave = function() {
+                    this.querySelector('.imessage-reaction-picker').style.display = 'none';
+                };
+                // For mobile: tap to toggle picker
+                bubble.onclick = function(e) {
+                    if (window.innerWidth < 600) {
+                        let picker = this.querySelector('.imessage-reaction-picker');
+                        picker.style.display = (picker.style.display === 'flex') ? 'none' : 'flex';
+                        e.stopPropagation();
+                    }
+                };
                 row.appendChild(bubble);
                 chatBox.appendChild(row);
             });
-            chatBox.scrollTop = chatBox.scrollHeight;
+            // Only scroll to bottom if user was already at the bottom
+            if (atBottom) {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
 
             // Add click event to all images for modal preview
             document.querySelectorAll('.chat-img-thumb').forEach(img => {
@@ -262,11 +379,59 @@
                     document.getElementById('imageModal').style.display = 'flex';
                 };
             });
+
+            // Add reaction event listeners
+            setTimeout(function() {
+                document.querySelectorAll('.react-btn').forEach(btn => {
+                    btn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const mid = this.getAttribute('data-mid');
+                        const emoji = this.getAttribute('data-emoji');
+                        if (!mid || mid === "undefined") {
+                            return;
+                        }
+                        fetch("{% url 'react_to_message' %}", {
+                            method: "POST",
+                            headers: {
+                                "X-CSRFToken": csrftoken,
+                                "Content-Type": "application/x-www-form-urlencoded"
+                            },
+                            body: "message_id=" + encodeURIComponent(mid) + "&emoji=" + encodeURIComponent(emoji)
+                        })
+                        .then(res => res.json())
+                        .then(() => {
+                            fetchMessages();
+                        });
+                    };
+                });
+            }, 0);
+            // Hide all pickers on document click (for mobile)
+            document.body.onclick = function(e) {
+                if (!e.target.closest('.imessage-reaction-picker') && !e.target.closest('.bubble')) {
+                    document.querySelectorAll('.imessage-reaction-picker').forEach(p => {
+                        p.style.display = 'none';
+                    });
+                }
+            };
         }
     
 
-        // Fetch messages every 2 seconds
+        // Fetch messages for room if in group chat
         function fetchMessages() {
+            {% if room %}
+            fetch('/fetch_messages/?room_id={{ room.id }}', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                renderMessages(data.messages);
+            });
+            {% else %}
             fetch('/fetch_messages/?recipient_id={{ recipient_id }}', {
                 method: 'GET',
                 headers: {
@@ -278,7 +443,29 @@
             .then(data => {
                 renderMessages(data.messages);
             });
+            {% endif %}
         }
+
+        // Show notification badge if there are unread messages
+        function updateNotificationBadge() {
+            fetch("{% url 'fetch_messages' %}?check_unread=1", {
+                credentials: "same-origin"
+            })
+            .then(res => res.json())
+            .then(data => {
+                const badge = document.getElementById('chat-notification-badge');
+                if (data.notify) {
+                    badge.textContent = "●";
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        }
+
+        // Call on load and every 10 seconds
+        updateNotificationBadge();
+        setInterval(updateNotificationBadge, 10000);
 
         // Utility to append a single message to the chat UI
         function appendSingleMessage(data) {
@@ -303,14 +490,26 @@
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(messageForm);
-            // Ensure CSRF token is included in the form data
             if (!formData.has('csrfmiddlewaretoken')) {
                 formData.append('csrfmiddlewaretoken', csrftoken);
             }
+            {% if room %}
+            fetch("{% url 'room_detail' room.id %}",  {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken
+                },
+                body: formData
+            })
+            .then(response => response.ok ? fetchMessages() : null)
+            .then(() => {
+                messageInput.value = '';
+                document.getElementById('imageInput').value = '';
+            });
+            {% else %}
             fetch(`/chat/{{ recipient_id }}/`,  {
                 method: 'POST',
                 headers: {
-                    // Do NOT set Content-Type here, let browser set it for FormData
                     'X-CSRFToken': csrftoken
                 },
                 body: formData
@@ -319,9 +518,9 @@
             .then(data => {
                 messageInput.value = '';
                 document.getElementById('imageInput').value = '';
-                appendSingleMessage(data); // Add the new message immediately
-                // Optionally, you can fetchMessages() after if you want to keep in sync
+                appendSingleMessage(data);
             });
+            {% endif %}
         });
 
         // Modal close logic
@@ -335,6 +534,269 @@
                 document.getElementById('modalImg').src = '';
             }
         };
+
+        // --- Video Call Modal Logic ---
+        const videoCallModal = document.getElementById('videoCallModal');
+        const startCallBtn = document.getElementById('start-video-call');
+        const closeCallBtn = document.getElementById('closeVideoCall');
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const callStatus = document.getElementById('video-call-status');
+        let twilioRoom = null;
+
+        // 1. Fetch Twilio Access Token from your server
+        async function fetchTwilioToken(roomName) {
+            // Change this to your own endpoint!
+            const resp = await fetch(`/video/token/?room=${encodeURIComponent(roomName)}`);
+            const data = await resp.json();
+            return data.token;
+        }
+
+        startCallBtn.onclick = async function() {
+            videoCallModal.style.display = 'flex';
+            callStatus.innerText = 'Connecting...';
+
+            // 2. Pick a room name (could be based on Django room.id or room.name)
+            const roomName = "{{ room.name|default:'default-room' }}";
+
+            // 3. Get access token (for now, you can paste a dev token here for testing)
+            let token = await fetchTwilioToken(roomName);
+
+            // 4. Connect to Twilio room and render video
+            Twilio.Video.connect(token, {
+                name: roomName,
+                audio: true,
+                video: { width: 480 }
+            }).then(room => {
+                twilioRoom = room;
+                callStatus.innerText = "Connected to video call!";
+
+                // Local participant
+                room.localParticipant.tracks.forEach(publication => {
+                    if (publication.track.kind === 'video') {
+                        localVideo.innerHTML = "";
+                        localVideo.appendChild(publication.track.attach());
+                    }
+                });
+
+                // Find the audio track
+                const audioTrack = room.localParticipant.audioTracks.getTracks()[0];
+                if (audioTrack) {
+                    // Attach to an <audio> element for local playback (muted to avoid echo)
+                    let audioEl = audioTrack.attach();
+                    audioEl.muted = true;
+                    audioEl.style.display = "none";
+                    document.body.appendChild(audioEl);
+
+                    // Optionally, log or show status
+                    console.log("Microphone is enabled:", audioTrack.isEnabled);
+                    // You can also display a message in your UI:
+                    // document.getElementById('video-call-status').innerText = "Microphone is working!";
+                } else {
+                    alert("No microphone detected.");
+                }
+
+                // Handle remote participants
+                function attachParticipantTracks(participant) {
+                    participant.tracks.forEach(publication => {
+                        if (publication.isSubscribed && publication.track.kind === 'video') {
+                            remoteVideo.innerHTML = "";
+                            remoteVideo.appendChild(publication.track.attach());
+                        }
+                    });
+                    participant.on('trackSubscribed', track => {
+                        if (track.kind === 'video') {
+                            remoteVideo.innerHTML = "";
+                            remoteVideo.appendChild(track.attach());
+                        }
+                    });
+                }
+
+                room.participants.forEach(attachParticipantTracks);
+                room.on('participantConnected', attachParticipantTracks);
+
+                // Cleanup on disconnect
+                room.on('disconnected', () => {
+                    callStatus.innerText = "Call ended.";
+                    localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
+                    remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+                });
+            }, error => {
+                callStatus.innerText = "Unable to join video call: " + error.message;
+            });
+        };
+
+        closeCallBtn.onclick = function() {
+            videoCallModal.style.display = 'none';
+            callStatus.innerText = '';
+            if (twilioRoom) {
+                twilioRoom.disconnect();
+                twilioRoom = null;
+            }
+            localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
+            remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+        };
+
+        // Hide modal on clicking outside the modal content
+        videoCallModal.onclick = function(e) {
+            if (e.target === videoCallModal) {
+                closeCallBtn.onclick();
+            }
+        };
+
+        // --- Incoming Call Notification Logic ---
+    // WebSocket for call signaling (simple demo, not production-ready)
+    let wsCall = null;
+    let isCalling = false;
+    let callRoomName = "{{ room.name|default:'default-room' }}";
+    let currentUser = "{{ request.user.username }}";
+    let incomingCallModal = document.getElementById('incomingCallModal');
+    let incomingCallFrom = document.getElementById('incomingCallFrom');
+    let acceptCallBtn = document.getElementById('acceptCallBtn');
+    let declineCallBtn = document.getElementById('declineCallBtn');
+
+    function openIncomingCallModal(fromUser) {
+        incomingCallFrom.textContent = `Incoming call from ${fromUser}...`;
+        incomingCallModal.style.display = 'flex';
+    }
+    function closeIncomingCallModal() {
+        incomingCallModal.style.display = 'none';
+    }
+
+    function setupCallWebSocket() {
+        if (wsCall) return;
+        wsCall = new WebSocket(`ws://${window.location.host}/ws/call/${callRoomName}/`);
+        wsCall.onmessage = function(event) {
+            let data = {};
+            try { data = JSON.parse(event.data); } catch {}
+            // If someone else is calling, show incoming call modal
+            if (data.type === 'call' && data.from && data.from !== currentUser) {
+                openIncomingCallModal(data.from);
+            }
+        };
+        wsCall.onclose = function() {
+            wsCall = null;
+        };
+    }
+    setupCallWebSocket();
+
+    // When user presses "Start Call", notify others in the room
+    document.getElementById('startCallBtn').addEventListener('click', async function() {
+        // Fetch Twilio token for the room
+        const roomName = "{{ room.name|default:'default-room' }}";
+        let token;
+        try {
+            const resp = await fetch(`/video/token/?room=${encodeURIComponent(roomName)}`);
+            const data = await resp.json();
+            token = data.token;
+        } catch (err) {
+            alert('Could not get video token from server.');
+            return;
+        }
+
+        Twilio.Video.createLocalTracks({
+            audio: true,
+            video: { width: 480, height: 340 }
+        }).then(localTracks => {
+            // Attach the tracks to the DOM for preview
+            const localMediaContainer = document.getElementById('local-media');
+            if (localMediaContainer) {
+                localMediaContainer.innerHTML = '';
+                localTracks.forEach(track => {
+                    const el = track.attach();
+                    if (track.kind === "video") setVideoElementSize(el, 480, 340);
+                    localMediaContainer.appendChild(el);
+                });
+            }
+            // Connect to Twilio Room with these tracks
+            return Twilio.Video.connect(token, {
+                name: roomName,
+                tracks: localTracks
+            });
+        }).then(room => {
+            // Connected!
+            document.getElementById('video-call-status').innerText = 'Connected to video call!';
+            // Attach local video to main video area
+            room.localParticipant.tracks.forEach(publication => {
+                if (publication.track.kind === 'video') {
+                    localVideo.innerHTML = "";
+                    const el = publication.track.attach();
+                    setVideoElementSize(el, 480, 340);
+                    localVideo.appendChild(el);
+                }
+            });
+            // Attach remote video
+            function attachParticipantTracks(participant) {
+                participant.tracks.forEach(publication => {
+                    if (publication.isSubscribed && publication.track.kind === 'video') {
+                        remoteVideo.innerHTML = "";
+                        const el = publication.track.attach();
+                        setVideoElementSize(el, 480, 340);
+                        remoteVideo.appendChild(el);
+                    }
+                });
+                participant.on('trackSubscribed', track => {
+                    if (track.kind === 'video') {
+                        remoteVideo.innerHTML = "";
+                        const el = track.attach();
+                        setVideoElementSize(el, 480, 340);
+                        remoteVideo.appendChild(el);
+                    }
+                });
+            }
+            room.participants.forEach(attachParticipantTracks);
+            room.on('participantConnected', attachParticipantTracks);
+
+            // Cleanup on disconnect
+            room.on('disconnected', () => {
+                callStatus.innerText = "Call ended.";
+                localVideo.innerHTML = '<span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Your video here</span>';
+                remoteVideo.innerHTML = '<span style="color:#bbb; position:absolute; left:0; right:0; top:0; bottom:0; display:flex;align-items:center;justify-content:center;">Other participant</span>';
+            });
+        }).catch(error => {
+            alert('You must allow camera and microphone access to join the call!');
+            console.error(error);
+        });
+
+        // Notify others via WebSocket
+        if (wsCall && wsCall.readyState === 1) {
+            wsCall.send(JSON.stringify({type: 'call', from: currentUser}));
+        }
+    });
+
+    // Accept/Decline incoming call
+    acceptCallBtn.onclick = function() {
+        closeIncomingCallModal();
+        document.getElementById('startCallBtn').click();
+    };
+    declineCallBtn.onclick = function() {
+        closeIncomingCallModal();
+    };
+
+    // Helper to set video element size for Twilio tracks
+    function setVideoElementSize(videoEl, width=380, height=270) {
+        videoEl.style.width = width + "px";
+        videoEl.style.height = height + "px";
+        videoEl.style.objectFit = "cover";
+        videoEl.style.borderRadius = "14px";
+        videoEl.style.display = "block";
+        videoEl.style.position = "relative";
+        videoEl.style.zIndex = "2";
+    }
+
+    // End Call Button logic
+    document.getElementById('endCallBtn').onclick = function() {
+        // Always disconnect the Twilio room if connected
+        if (twilioRoom) {
+            twilioRoom.disconnect();
+            twilioRoom = null;
+        }
+        // Hide the modal and reset UI
+        videoCallModal.style.display = 'none';
+        callStatus.innerText = '';
+        localVideo.innerHTML = '<span style="color:#bbb;">Your video here</span>';
+        remoteVideo.innerHTML = '<span style="color:#bbb;">Other participant</span>';
+    };
     </script>
 </body>
 </html>

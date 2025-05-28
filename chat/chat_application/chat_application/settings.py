@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,7 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'c_application.apps.CApplicationConfig',
     'widget_tweaks',
+    'channels',
 ]
+ASGI_APPLICATION = 'chat_application.asgi.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -126,7 +131,15 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User
 AUTH_USER_MODEL = 'c_application.CustomUser'
 
+# Media
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+
+# Twilio
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
