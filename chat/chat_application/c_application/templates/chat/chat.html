@@ -162,21 +162,101 @@
             text-align: center;
         }
         @media (max-width: 600px) {
+            body {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
             .chat-container {
-                width: 100vw;
-                height: 100vh;
-                border-radius: 0;
+                width: 100vw !important;
+                height: 100vh !important;
+                min-height: 100vh !important;
+                max-width: 100vw !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+            .chat-container > div,
+            .input-container {
+                width: 98vw !important;
+                max-width: 98vw !important;
+                min-width: 98vw !important;
+                margin-left: 1vw !important;
+                margin-right: 1vw !important;
             }
             #chat-box {
-                padding: 12px 4px 10px 4px;
+                padding: 10px 4px 6px 4px !important;
+                font-size: 1em !important;
+                min-height: 350px !important;
+            }
+            .input-container {
+                flex-direction: column !important;
+                gap: 7px !important;
+                align-items: stretch !important;
+                padding: 10px 4px !important;
+                font-size: 1em !important;
+            }
+            .input-container input[type="text"],
+            .input-container button {
+                width: 100% !important;
+                min-height: 46px !important;
+                font-size: 1.09em !important;
+                margin-bottom: 8px !important;
+                padding: 13px 10px !important;
+            }
+            .input-container button {
+                min-height: 48px !important;
+                font-size: 1.12em !important;
+                padding: 13px 0 !important;
+            }
+            .bubble {
+                font-size: 1.03em !important;
+                padding: 10px 12px !important;
+            }
+            h1, h2, h3, h4, .section-header {
+                font-size: 1.19em !important;
+                margin-top: 0.8em !important;
+                letter-spacing: 0.5px !important;
+            }
+            /* Chat header tweaks */
+            .chat-container > div[style*="display: flex; align-items: center; justify-content: center"] {
+                flex-direction: column !important;
+                gap: 10px !important;
+                padding: 12px 0 8px 0 !important;
+            }
+            /* Video modal and grid tweaks */
+            .modal .video-call-animated {
+                width: 98vw !important;
+                max-width: 100vw !important;
+                min-width: 98vw !important;
+                padding: 16px 4px 8px 4px !important;
+            }
+            #video-grid {
+                gap: 8px !important;
+                min-height: 120px !important;
+            }
+            .video-tile {
+                min-width: 95vw !important;
+                max-width: 98vw !important;
+                min-height: 90px !important;
+                max-height: 140px !important;
+            }
+            /* Misc fix for badges and close buttons */
+            .notification-badge {
+                top: 0 !important;
+                right: 0 !important;
+                min-width: 18px !important;
+                font-size: 0.85em !important;
+            }
+            #closeModal, #closeVideoCall {
+                font-size: 1.6em !important;
+                top: 10px !important;
+                right: 10px !important;
             }
         }
     </style>
 </head>
 <body>
-    <button onclick="goBack()" class="btn btn-secondary shadow" style="position: absolute; top: 18px; left: 18px; z-index: 10; border-radius: 50px; padding: 8px 18px;">
-        <i class="fa fa-arrow-left"></i> Back
-    </button>
     <div class="chat-container">
         <!-- Chat header with room or recipient name -->
         <div style="display: flex; align-items: center; justify-content: center; gap: 14px; background: linear-gradient(90deg, #e0eafc 0%, #cfdef3 100%); border-bottom: 1px solid #e0e0e0; padding: 18px 0 10px 0; border-radius: 28px 28px 0 0;">
@@ -222,6 +302,11 @@
             <!-- Video tiles will be dynamically injected here -->
           </div>
           <div id="video-call-status" style="margin-top:8px; color:#888; font-size:1.12em; min-height:1.5em;"></div>
+          <div id="mic-visualizer-container" style="margin:10px 0; width: 100%; display: flex; justify-content:center;">
+            <div id="mic-visualizer" style="width: 160px; height: 12px; background: #eee; border-radius: 8px; overflow: hidden; box-shadow:0 2px 4px #00c6ff18;">
+              <div id="mic-level" style="height:100%; width:0%; background:linear-gradient(90deg,#00eaff,#007aff); transition:width 0.09s;"></div>
+            </div>
+          </div>
           <div id="call-timer" style="font-weight:600; color:#007aff; font-size:1.25em; margin:12px 0 0 0; letter-spacing:1px; display:none;">
               00:00
           </div>
@@ -341,6 +426,32 @@
     <!-- Twilio Video SDK -->
     <script src="//sdk.twilio.com/js/video/releases/2.17.1/twilio-video.min.js"></script>
     <script>
+        // --- Mic Visualizer Logic ---
+        let audioContext, analyser, micSource, micAnimationFrame;
+        function startMicVisualizer(stream) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 32;
+            micSource = audioContext.createMediaStreamSource(stream);
+            micSource.connect(analyser);
+            const micLevelBar = document.getElementById('mic-level');
+            function drawMicLevel() {
+                let dataArray = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(dataArray);
+                let avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+                let percent = Math.min(Math.max((avg/255)*100, 0), 100);
+                micLevelBar.style.width = percent + "%";
+                micLevelBar.style.background = percent > 50 ? "linear-gradient(90deg,#00eaff,#007aff 85%)" : "linear-gradient(90deg,#007aff,#e0e0e0 90%)";
+                micAnimationFrame = requestAnimationFrame(drawMicLevel);
+            }
+            drawMicLevel();
+        }
+
+        function stopMicVisualizer() {
+            if (micAnimationFrame) cancelAnimationFrame(micAnimationFrame);
+            if (micSource) micSource.disconnect();
+            if (audioContext) audioContext.close();
+        }
         let callStartTime = null;
         let callTimerInterval = null;
 
@@ -713,12 +824,40 @@
             callStatus.innerText = 'Connecting...';
 
             const roomName = "{{ room.name|default:'default-room' }}";
-            let token = await fetchTwilioToken(roomName);
+            let token;
+            try {
+                token = await fetchTwilioToken(roomName);
+            } catch (err) {
+                callStatus.innerText = "Error fetching token.";
+                return;
+            }
 
-            Twilio.Video.connect(token, {
-                name: roomName,
+            // Request camera and mic together for best UX
+            Twilio.Video.createLocalTracks({
                 audio: true,
                 video: { width: 480 }
+            }).then(localTracks => {
+                // Start mic visualizer with the local audio track
+                const audioTrack = localTracks.find(t => t.kind === 'audio');
+                if (audioTrack && audioTrack.mediaStreamTrack) {
+                    const micStream = new MediaStream([audioTrack.mediaStreamTrack]);
+                    startMicVisualizer(micStream);
+                }
+                let hasAudio = localTracks.some(track => track.kind === 'audio');
+                let hasVideo = localTracks.some(track => track.kind === 'video');
+                if (!hasAudio) {
+                    callStatus.innerText = "Microphone access denied or unavailable.";
+                    alert("Microphone access denied or not found. Please check your permissions.");
+                }
+                if (!hasVideo) {
+                    callStatus.innerText = "Camera access denied or unavailable.";
+                    alert("Camera access denied or not found. Please check your permissions.");
+                }
+                // Proceed to connect
+                return Twilio.Video.connect(token, {
+                    name: roomName,
+                    tracks: localTracks
+                });
             }).then(room => {
                 twilioRoom = room;
                 callStatus.innerText = "Connected to video call!";
@@ -737,7 +876,7 @@
                     if (publication.track.kind === 'audio') {
                         localAudioTrack = publication.track;
                         const audioEl = publication.track.attach();
-                        audioEl.muted = true;
+                        audioEl.muted = true; // Don't echo your own audio
                         audioEl.style.display = "none";
                         document.body.appendChild(audioEl);
                         callStatus.innerText += " | Microphone is ON";
@@ -789,9 +928,17 @@
                     videoGrid.innerHTML = "";
                     videoTiles = {};
                     stopCallTimer();
+                    stopMicVisualizer();
                 });
-            }, error => {
-                callStatus.innerText = "Unable to join video call: " + error.message;
+            }).catch(error => {
+                if (error.name === "NotAllowedError") {
+                    callStatus.innerText = "Microphone or camera permission denied. Please allow permissions and try again.";
+                    alert("Microphone or camera permission denied. Please allow permissions and try again.");
+                } else {
+                    callStatus.innerText = "Unable to join video call: " + error.message;
+                    alert("Unable to join video call: " + error.message);
+                }
+                stopMicVisualizer();
             });
         };
 
@@ -819,6 +966,7 @@
             videoGrid.innerHTML = "";
             videoTiles = {};
             stopCallTimer();
+            stopMicVisualizer();
             document.getElementById('muteIcon').className = "fa fa-microphone";
             localAudioTrack = null;
         }
