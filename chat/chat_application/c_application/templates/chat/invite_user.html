@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>You're Invited to MyChatApp!</title>
+  <style>
+    body {
+      background: radial-gradient(ellipse at center, #232526 0%, #35374b 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #fff;
+    }
+    .invite-outer {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .invite-card {
+      background: rgba(27, 28, 37, 0.98);
+      max-width: 480px;
+      margin: 32px auto;
+      padding: 50px 32px 40px 32px;
+      border-radius: 30px;
+      box-shadow: 0 10px 42px rgba(0,0,0,0.26);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .confetti {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 10px;
+      margin-top: -25px;
+      font-size: 3.5em;
+      z-index: 2;
+      filter: drop-shadow(0 4px 18px #ffa70060);
+      user-select: none;
+      pointer-events: none;
+      animation: bounceIn 0.9s cubic-bezier(0.42,0,0.58,1);
+    }
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: scale(0.7) translateY(-25px);}
+      70% { opacity: 1; transform: scale(1.1) translateY(7px);}
+      100% { opacity: 1; transform: scale(1) translateY(0);}
+    }
+    h2 {
+      color: #35aaff;
+      font-size: 2.1em;
+      font-weight: 700;
+      margin: 8px 0 10px 0;
+      letter-spacing: 0.02em;
+    }
+    .inviter {
+      color: #ff9800;
+      font-weight: bold;
+      font-size: 1.2em;
+      letter-spacing: 0.01em;
+    }
+    .desc {
+      color: #e4e7ef;
+      margin: 18px 0 26px 0;
+      font-size: 1.17em;
+      line-height: 1.45;
+    }
+    .invite-btn {
+      background: linear-gradient(90deg, #1cb5fc 0%, #1edfff 100%);
+      color: #173046;
+      text-decoration: none;
+      padding: 18px 44px;
+      border-radius: 999px;
+      font-size: 1.18em;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      transition: box-shadow 0.2s, filter 0.2s;
+      box-shadow: 0 6px 28px rgba(0,214,255,0.17);
+      display: inline-block;
+      margin: 32px 0 18px 0;
+      border: none;
+      cursor: pointer;
+    }
+    .invite-btn:hover {
+      box-shadow: 0 3px 38px rgba(0,214,255,0.26);
+      filter: brightness(1.08);
+    }
+    .footer {
+      margin-top: 28px;
+      font-size: 1em;
+      color: #a2a4ab;
+      letter-spacing: 0.01em;
+    }
+    .footer span {
+      display: block;
+      color: #22bbff;
+      margin-top: 8px;
+    }
+    @media (max-width: 540px) {
+      .invite-card {
+        max-width: 98vw;
+        padding: 20px 4vw 32px 4vw;
+      }
+      .confetti {
+        font-size: 2.2em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="invite-outer">
+    <div class="invite-card">
+      <div class="confetti">🎉✨</div>
+      <h2>You're Invited!</h2>
+      <p>
+        <span class="inviter">{{ inviter }}</span>
+        thinks you’d love <b>MyChatApp</b>!
+      </p>
+      <div class="desc">
+        Join our vibrant community for chat, video calls, and fun.<br>
+        Connect with friends, share moments, and so much more.
+      </div>
+      <a class="invite-btn" href="{{ invite_link }}">Accept Invitation</a>
+      <div class="footer">
+        If you didn't expect this, just ignore this email.
+        <span>— The MyChatApp Team</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

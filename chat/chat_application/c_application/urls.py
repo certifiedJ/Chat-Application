@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 from django.contrib.auth.views import LogoutView
 from .views import video_token
+from .views import invite_user
+
 
 urlpatterns = [
     path('chat/<int:recipient_id>/', views.chat_view, name='chat'),
@@ -17,5 +19,7 @@ urlpatterns = [
     path('submit_feedback/', views.submit_feedback, name='submit_feedback'),
     path('react_to_message/', views.react_to_message, name='react_to_message'),
     path('video/token/', video_token, name='video_token'),
+    path('invite_user/', views.invite_user, name='invite_user'),
+    path('invite/', invite_user, name='invite_user'),
     path('', views.home, name='home'),
 ]

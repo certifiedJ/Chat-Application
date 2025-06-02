@@ -20,6 +20,11 @@ from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VideoGrant
 import os
 
+from django.core.mail import send_mail
+from django.conf import settings
+from twilio.rest import Client  # You have this for video already!
+
+
 
 User = get_user_model()  # <--- Use this everywhere
 
@@ -306,3 +311,65 @@ def video_token(request):
     video_grant = VideoGrant(room=room)
     token.add_grant(video_grant)
     return JsonResponse({'token': token.to_jwt()})
+
+
+
+# New invite_user view (supports both email and SMS via Twilio)
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
+from django.conf import settings
+from twilio.rest import Client
+
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+
+@require_POST
+@login_required
+def invite_user(request):
+    email = request.POST.get('email')
+    phone = request.POST.get('phone')
+    invite_link = request.build_absolute_uri('/register/')
+
+    if email:
+        subject = "🎉 Invitation to MyChatApp!"
+        from_email = settings.DEFAULT_FROM_EMAIL
+        to = [email]
+        context = {
+            'inviter': request.user.username,
+            'invite_link': invite_link,
+        }
+
+        text_content = f"{request.user.username} invited you to join MyChatApp! Register here: {invite_link}"
+        html_content = render_to_string('chat/invite_user.html', context)  
+
+        msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+        msg.attach_alternative(html_content, "text/html")
+        msg.send(fail_silently=True)
+
+        return JsonResponse({'success': True, 'message': 'Invitation email sent.'})
+
+    elif phone:
+        # Send SMS using Twilio
+        account_sid = getattr(settings, "TWILIO_ACCOUNT_SID", None) or os.getenv("TWILIO_ACCOUNT_SID")
+        auth_token = getattr(settings, "TWILIO_AUTH_TOKEN", None) or os.getenv("TWILIO_AUTH_TOKEN")
+        twilio_number = getattr(settings, "TWILIO_PHONE_NUMBER", None) or os.getenv("TWILIO_PHONE_NUMBER")
+        if not (account_sid and auth_token and twilio_number):
+            return JsonResponse({'error': 'Twilio credentials not configured.'}, status=500)
+        client = Client(account_sid, auth_token)
+        sms_body = (
+            f"🎉 You're Invited! {request.user.username} thinks you’d love MyChatApp: "
+            "a vibrant place for chat, video calls, and fun. "
+            f"Accept your invite: {invite_link} 🚀"
+        )
+        try:
+            message = client.messages.create(
+                body=sms_body,
+                from_=twilio_number,
+                to=phone
+            )
+            return JsonResponse({'success': True, 'message': 'Invitation SMS sent.'})
+        except Exception as e:
+            return JsonResponse({'error': f'Failed to send SMS: {str(e)}'}, status=500)
+    else:
+        return JsonResponse({'error': 'Email or phone is required.'}, status=400)

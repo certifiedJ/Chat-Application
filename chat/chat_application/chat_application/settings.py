@@ -23,12 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ukv!$_^iuf8hs=!)t(@k7d@lk^3kx9tzgd)vi_0jnu#myjh9u8'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", 'django-insecure-ukv!$_^iuf8hs=!)t(@k7d@lk^3kx9tzgd)vi_0jnu#myjh9u8')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1",  "chat-application-fj37.onrender.com",]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "chat-application-fj37.onrender.com",]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://chat-application-fj37.onrender.com', 
@@ -148,7 +148,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Twilio
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")  
 
 # Channels/Redis
 CHANNEL_LAYERS = {
@@ -159,3 +159,15 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# Email settings for user invites (update these in production)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+
+# === Custom settings for invites/notifications ===
+# Add any custom config here (e.g. SMS_FROM_NUMBER, INVITE_LINK_BASE, etc.)
