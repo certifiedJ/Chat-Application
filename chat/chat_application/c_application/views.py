@@ -357,10 +357,10 @@ def invite_user(request):
         if not (account_sid and auth_token and twilio_number):
             return JsonResponse({'error': 'Twilio credentials not configured.'}, status=500)
         client = Client(account_sid, auth_token)
+        inviter = request.user.username
         sms_body = (
-            f"🎉 You're Invited! {request.user.username} thinks you’d love MyChatApp: "
-            "a vibrant place for chat, video calls, and fun. "
-            f"Accept your invite: {invite_link} 🚀"
+            "Sent from your Twilio trial account - You've been invited to join MyChatApp by "
+            f"{inviter}!. Join here: http://chat-application-fj37.onrender.com/register/"
         )
         try:
             message = client.messages.create(
