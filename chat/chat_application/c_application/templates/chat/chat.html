@@ -883,16 +883,26 @@
                     }
                 });
 
-                // Add participants' video tiles
+                // Add participants' video tiles and handle remote audio
                 room.participants.forEach(participant => {
                     participant.tracks.forEach(publication => {
                         if (publication.isSubscribed && publication.track.kind === 'video') {
                             addVideoTile(participant.sid, publication.track, participant.identity);
                         }
+                        // Handle remote audio tracks
+                        if (publication.isSubscribed && publication.track.kind === 'audio') {
+                            const audioEl = publication.track.attach();
+                            document.body.appendChild(audioEl);
+                        }
                     });
                     participant.on('trackSubscribed', track => {
                         if (track.kind === 'video') {
                             addVideoTile(participant.sid, track, participant.identity);
+                        }
+                        // Handle remote audio tracks
+                        if (track.kind === 'audio') {
+                            const audioEl = track.attach();
+                            document.body.appendChild(audioEl);
                         }
                     });
                     participant.on('trackUnsubscribed', track => {
@@ -906,10 +916,20 @@
                         if (publication.isSubscribed && publication.track.kind === 'video') {
                             addVideoTile(participant.sid, publication.track, participant.identity);
                         }
+                        // Handle remote audio tracks
+                        if (publication.isSubscribed && publication.track.kind === 'audio') {
+                            const audioEl = publication.track.attach();
+                            document.body.appendChild(audioEl);
+                        }
                     });
                     participant.on('trackSubscribed', track => {
                         if (track.kind === 'video') {
                             addVideoTile(participant.sid, track, participant.identity);
+                        }
+                        // Handle remote audio tracks
+                        if (track.kind === 'audio') {
+                            const audioEl = track.attach();
+                            document.body.appendChild(audioEl);
                         }
                     });
                     participant.on('trackUnsubscribed', track => {
@@ -1061,7 +1081,7 @@
                     localVideo.appendChild(el);
                 }
             });
-            // Attach remote video
+            // Attach remote video and audio
             function attachParticipantTracks(participant) {
                 participant.tracks.forEach(publication => {
                     if (publication.isSubscribed && publication.track.kind === 'video') {
@@ -1070,6 +1090,11 @@
                         setVideoElementSize(el, 480, 340);
                         remoteVideo.appendChild(el);
                     }
+                    // Handle remote audio tracks
+                    if (publication.isSubscribed && publication.track.kind === 'audio') {
+                        const audioEl = publication.track.attach();
+                        document.body.appendChild(audioEl);
+                    }
                 });
                 participant.on('trackSubscribed', track => {
                     if (track.kind === 'video') {
@@ -1077,6 +1102,11 @@
                         const el = track.attach();
                         setVideoElementSize(el, 480, 340);
                         remoteVideo.appendChild(el);
+                    }
+                    // Handle remote audio tracks
+                    if (track.kind === 'audio') {
+                        const audioEl = track.attach();
+                        document.body.appendChild(audioEl);
                     }
                 });
             }

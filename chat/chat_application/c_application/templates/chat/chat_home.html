@@ -346,39 +346,18 @@
         100% { opacity:1; transform: translateY(0);}
     }
     </style>
-    <form id="inviteUserForm" method="post" action="/invite/"
-          style="
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 28px;
-            gap: 0;
-            width: 100%;
-            max-width: 1100px;
-            margin-left: 85px;
-          ">
-        {% csrf_token %}
-        <input type="email" name="email" placeholder="User email to invite"
-               style="padding:13px 18px; border-radius:10px; border:1.5px solid #e6e6e6; font-size:1.14em; box-shadow:0 1px 7px rgba(80,100,255,0.08); transition:box-shadow 0.2s; flex:1; min-width:260px; max-width:390px; margin-right:15px;"
-               autocomplete="off">
-        <div style="
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          width: 66px;
-        ">
-            <span style="font-size:1.15em; color:#2575fc; font-weight:700; background:rgba(255,255,255,0.98); border-radius:8px; padding:5px 12px; margin: 0 0 0 0; box-shadow:0 2px 12px rgba(38, 50, 56, 0.07);">or</span>
-        </div>
-        <input type="tel" name="phone" placeholder="User phone (+countrycode)"
-               style="padding:13px 18px; border-radius:10px; border:1.5px solid #e6e6e6; font-size:1.14em; box-shadow:0 1px 7px rgba(80,100,255,0.08); transition:box-shadow 0.2s; flex:1; min-width:260px; max-width:390px; margin-left:15px;"
-               autocomplete="off">
-        <button type="submit" class="btn btn-primary" id="inviteBtn" style="border-radius:10px;padding:12px 28px; font-size:1.09em; font-weight:600; background:#1877f2; border:none; margin-left:17px;">
-            <span id="inviteBtnText">Invite User</span>
-            <span id="inviteSpinner" style="display:none;" class="spinner-border spinner-border-sm"></span>
-        </button>
-    </form>
+   <form id="inviteUserForm" method="post" action="/invite/" class="invite-form-mobile" style="display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; gap:10px; align-items:center; max-width:95vw; width:100%;">
+       {% csrf_token %}
+       <input type="email" name="email" placeholder="User email to invite"
+              style="flex:1; min-width:240px; max-width:350px; padding:12px 18px; border-radius:10px; border:1.5px solid #ccc; font-size:1em;">
+       <span style="font-weight:700; color:#2575fc; font-size:1.1em; padding:0 8px;">or</span>
+       <input type="tel" name="phone" placeholder="User phone (+countrycode)"
+              style="flex:1; min-width:240px; max-width:350px; padding:12px 18px; border-radius:10px; border:1.5px solid #ccc; font-size:1em;">
+       <button type="submit" class="btn btn-primary" id="inviteBtn" style="padding:12px 20px; font-size:1em; font-weight:600; border-radius:10px;">
+           <span id="inviteBtnText">Invite User</span>
+           <span id="inviteSpinner" style="display:none;" class="spinner-border spinner-border-sm"></span>
+       </button>
+   </form>
     <script>
       // Add fade-in on page load
       document.addEventListener('DOMContentLoaded', function() {
