@@ -31,6 +31,7 @@ class Message(models.Model):
     
 class CustomUser(AbstractUser):
     is_online = models.BooleanField(default=False)
+    contacts = models.ManyToManyField('self', symmetrical=False, related_name='contacted_by', blank=True)
 
 
 class Feedback(models.Model):

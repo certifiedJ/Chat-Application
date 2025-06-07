@@ -72,16 +72,7 @@ def chat_view(request, recipient_id):
         
 
 def chat_home(request):
-    users = User.objects.filter(
-        id__in=Message.objects.filter(
-            recipient=request.user
-        ).values_list('sender_id', flat=True)
-    ) | User.objects.filter(
-        id__in=Message.objects.filter(
-            sender=request.user
-        ).values_list('recipient_id', flat=True)
-    )
-    users = users.distinct().exclude(id=request.user.id)
+    users = request.user.contacts.all()  # Ensure `contacts` field exists in the CustomUser model
     rooms = ChatRoom.objects.filter(participants=request.user)
     unread_counts = {
         user.id: Message.objects.filter(sender=user, recipient=request.user, read=False).count()
@@ -119,7 +110,15 @@ def registration_view(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            inviter_id = request.GET.get('invited_by')
+            if inviter_id:
+                try:
+                    inviter = User.objects.get(id=inviter_id)
+                    inviter.contacts.add(user)
+                    user.contacts.add(inviter)
+                except User.DoesNotExist:
+                    pass
             messages.success(request, 'Account created successfully!')
             return redirect('login')
         else:
@@ -337,7 +336,7 @@ from django.template.loader import render_to_string
 def invite_user(request):
     email = request.POST.get('email')
     #phone = request.POST.get('phone')
-    invite_link = request.build_absolute_uri('/register/')
+    invite_link = request.build_absolute_uri(f'/register/?invited_by={request.user.id}')
 
     if email:
         subject = "🎉 Invitation to MyChatApp!"
@@ -361,7 +360,7 @@ def invite_user(request):
         # Send SMS using Twilio
         #auth_token = getattr(settings, "TWILIO_AUTH_TOKEN", None) or os.getenv("TWILIO_AUTH_TOKEN")
         #twilio_number = getattr(settings, "TWILIO_PHONE_NUMBER", None) or os.getenv("TWILIO_PHONE_NUMBER")
-        #if not (account_sid and auth_token and twilio_number):
+        #if not (account_sid and auth_token and twilio_number):a
           #  return JsonResponse({'error': 'Twilio credentials not configured.'}, status=500)
         # f"{inviter}!. Join here: http://chat-application-fj37.onrender.com/register/"
        ##try:
