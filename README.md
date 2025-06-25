@@ -102,9 +102,7 @@ Visit: [http://localhost:8000/](http://localhost:8000/)
 
 ---
 
-## 🤝 Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request for improvements or bug fixes.
 
 ---
 
