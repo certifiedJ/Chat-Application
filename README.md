@@ -100,11 +100,6 @@ Visit: [http://localhost:8000/](http://localhost:8000/)
 - Start chatting with other users in real time.
 - Send text messages or upload images.
 
----
-
-
-
----
 
 ## 📜 License
 
